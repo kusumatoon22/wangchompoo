@@ -1,0 +1,2033 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเลือกตั้งผู้แทนสมาชิก กลุ่มโรงเรียนวังชมภู ประจำปี 2569 - สหกรณ์ออมทรัพย์ครูเพชรบูรณ์ จำกัด</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontPrompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Public Results Graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel and CSV import -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        coop: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            dark: '#064e3b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-gradient-to-r from-coop-900 via-coop-800 to-coop-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center space-x-3 mb-3 md:mb-0">
+                <div class="bg-white p-2.5 rounded-full text-coop-800 shadow">
+                    <i class="fa-solid fa-landmark text-2xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-emerald-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">กลุ่มโรงเรียนวังชมภู</span>
+                        <h1 class="text-xl md:text-2xl font-bold tracking-wide">กลุ่มโรงเรียนวังชมภู</h1>
+                    </div>
+                    <p class="text-xs md:text-sm text-coop-100 opacity-90">ระบบเลือกตั้งผู้แทนสมาชิก ประจำปี พ.ศ. 2569 (สหกรณ์ออมทรัพย์ครูเพชรบูรณ์ จำกัด)</p>
+                </div>
+            </div>
+            <!-- Navigation Switcher Tabs -->
+            <nav class="flex flex-wrap gap-2 justify-center bg-coop-900/50 p-1.5 rounded-xl border border-coop-700">
+                <button onclick="switchTab('voter')" id="nav-voter" class="px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-white text-coop-900 shadow">
+                    <i class="fa-solid fa-box-archive mr-1.5"></i> ลงคะแนนเลือกตั้ง
+                </button>
+                <button onclick="switchTab('result')" id="nav-result" class="px-4 py-2 rounded-lg text-sm font-medium transition duration-200 text-coop-100 hover:bg-coop-800">
+                    <i class="fa-solid fa-chart-pie mr-1.5"></i> ผลการเลือกตั้ง
+                </button>
+                <button onclick="switchTab('admin')" id="nav-admin" class="px-4 py-2 rounded-lg text-sm font-medium transition duration-200 text-coop-100 hover:bg-coop-800">
+                    <i class="fa-solid fa-lock mr-1.5"></i> ระบบผู้ดูแล (Admin)
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-8">
+
+        <!-- Status Banner / Timer Notification -->
+        <div id="system-status-banner" class="mb-6 p-4 rounded-xl shadow-sm border flex flex-col md:flex-row items-center justify-between gap-3 transition-all">
+            <div class="flex items-center space-x-3">
+                <span id="status-icon" class="text-3xl">⏳</span>
+                <div>
+                    <h3 id="status-title" class="font-bold text-base">กำลังตรวจสอบสถานะระบบ...</h3>
+                    <p id="status-desc" class="text-sm opacity-90">กรุณารอสักครู่</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div id="timer-display" class="font-mono text-sm bg-white px-3.5 py-1.5 rounded-lg shadow-inner border border-slate-200 text-slate-800 font-bold">
+                    เวลาที่เหลือ: --:--:--
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 1: VOTER INTERFACE ==================== -->
+        <section id="tab-voter" class="space-y-6">
+            <!-- สถานะเมื่อระบบปิดลงคะแนน (แสดงแทนฟอร์มเข้าสู่ระบบ เพื่อไม่ให้ผู้มีสิทธิ์ลงคะแนนได้) -->
+            <div id="system-closed-card" class="hidden max-w-lg mx-auto bg-white rounded-2xl shadow-xl border border-rose-200 overflow-hidden text-center p-8 transition-all">
+                <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-sm">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">ระบบปิดรับการลงคะแนนเลือกตั้งแล้ว</h2>
+                <p id="closed-card-desc" class="text-sm text-slate-600 mt-2 font-medium">ขณะนี้ไม่อยู่ในช่วงเวลาเปิดรับลงคะแนน สมาชิกไม่สามารถลงคะแนนได้</p>
+                <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-shield-halved text-coop-600"></i>
+                    <span>ระบบล็อคการลงคะแนนเพื่อความโปร่งใสและเป็นไปตามระเบียบการเลือกตั้ง</span>
+                </div>
+            </div>
+
+            <!-- Step 1: Login / Verification Form -->
+            <div id="voter-login-card" class="max-w-lg mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-coop-700 to-coop-800 p-6 text-white text-center">
+                    <div class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <h2 class="text-xl font-bold">ยืนยันตัวตนผู้มีสิทธิ์เลือกตั้ง</h2>
+                    <p class="text-xs text-coop-100 mt-1">กลุ่มโรงเรียนวังชมภู สหกรณ์ออมทรัพย์ครูเพชรบูรณ์ จำกัด</p>
+                </div>
+                
+                <div class="p-6 space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">เลขประจำตัวสมาชิก</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i class="fa-solid fa-id-card text-lg"></i>
+                            </span>
+                            <input type="text" id="member-id" autofocus placeholder="กรอกเลขประจำตัวสมาชิก เช่น 10001" 
+                                oninput="handleMemberIdInput()" onkeydown="if(event.key==='Enter') verifyMemberId()"
+                                class="w-full pl-11 pr-28 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-coop-500 focus:border-coop-500 outline-none transition font-medium text-slate-800 text-base">
+                            <button type="button" onclick="verifyMemberId()" class="absolute right-2 top-2 bottom-2 px-4 bg-coop-600 hover:bg-coop-700 text-white text-xs font-semibold rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <span>ตรวจสอบ</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- กล่องแสดงข้อมูลผู้มีสิทธิ์เมื่อเลขสมาชิกถูกต้อง ให้ตรวจสอบก่อนเข้าคูหา -->
+                    <div id="voter-result-box" class="hidden transition-all duration-300">
+                        <!-- Dynamic rendered by JS -->
+                    </div>
+
+                    <!-- กล่องแจ้งเตือนกรณีไม่พบเลขสมาชิก -->
+                    <div id="voter-not-found-box" class="hidden p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start space-x-2.5">
+                        <i class="fa-solid fa-circle-xmark text-lg text-rose-600 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <div class="font-bold">ไม่พบเลขประจำตัวสมาชิกนี้</div>
+                            <div class="text-xs text-rose-600 mt-0.5" id="not-found-desc">ไม่พบข้อมูลในบัญชีรายชื่อผู้มีสิทธิ์เลือกตั้ง กรุณาตรวจสอบเลขใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 pb-6 text-center text-xs text-slate-400 border-t border-slate-100 pt-3">
+                    <i class="fa-solid fa-shield-halved mr-1"></i> ระบบจัดเก็บคะแนนแบบไม่ระบุตัวตน (Anonymous Voting)
+                </div>
+            </div>
+
+            <!-- Step 2: Voting Booth Panel (Hidden initially) -->
+            <div id="voting-booth-panel" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full uppercase">
+                            <i class="fa-solid fa-check mr-1"></i> ผ่านการตรวจสอบสิทธิ์แล้ว
+                        </span>
+                        <h2 id="logged-voter-info" class="text-xl font-bold text-slate-800 mt-2">สมาชิกรหัส: -</h2>
+                        <p id="logged-voter-org" class="text-sm text-slate-500">สังกัด: -</p>
+                    </div>
+                    <button onclick="logoutVoter()" class="text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 px-4 py-2.5 rounded-xl font-medium transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>ออกจากระบบ</span>
+                    </button>
+                </div>
+
+                <!-- Candidates Grid -->
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa-solid fa-users-rectangle text-coop-600 mr-2"></i> รายชื่อผู้สมัครรับเลือกตั้งผู้แทนสมาชิก ประจำปี 2569 (กลุ่มโรงเรียนวังชมภู)
+                    </h3>
+                    <div id="candidates-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Dynamic generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Vote No Option Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-2xl font-bold border border-slate-300">
+                            <i class="fa-solid fa-ban"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-slate-700">งดออกเสียง / ไม่ประสงค์ลงคะแนน</h4>
+                            <p class="text-sm text-slate-500">เลือกตัวเลือกนี้หากท่านไม่ต้องการลงคะแนนให้ผู้สมัครท่านใด</p>
+                        </div>
+                    </div>
+                    <button onclick="confirmVoteSelection('no-vote', 'ไม่ประสงค์ลงคะแนน (Vote No)')" class="w-full sm:w-auto bg-slate-600 hover:bg-slate-700 text-white font-semibold px-6 py-3 rounded-xl shadow transition whitespace-nowrap">
+                        <i class="fa-solid fa-circle-xmark mr-2"></i> เลือกไม่ประสงค์ลงคะแนน
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: RESULT DASHBOARD ==================== -->
+        <section id="tab-result" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">รายงานผลการนับคะแนนอย่างเป็นทางการ</h2>
+                        <p class="text-sm text-slate-500">กลุ่มโรงเรียนวังชมภู สหกรณ์ออมทรัพย์ครูเพชรบูรณ์ จำกัด ประจำปี 2569</p>
+                    </div>
+                    <button onclick="loadPublicResults()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm px-4 py-2 rounded-xl transition flex items-center space-x-2">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>รีเฟรชข้อมูล</span>
+                    </button>
+                </div>
+
+                <!-- Stats summary cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-slate-50 border border-slate-200 p-5 rounded-2xl flex items-center space-x-4">
+                        <div class="bg-slate-700 text-white p-4 rounded-xl shadow-md text-2xl">
+                            <i class="fa-solid fa-address-book"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">ผู้มีสิทธิ์ทั้งหมด</p>
+                            <h3 id="stat-total-eligible" class="text-2xl font-extrabold text-slate-800 mt-1">0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-coop-50 border border-coop-100 p-5 rounded-2xl flex items-center space-x-4">
+                        <div class="bg-coop-600 text-white p-4 rounded-xl shadow-md text-2xl">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-coop-800 font-semibold uppercase tracking-wider">ผู้มาใช้สิทธิ์แล้ว</p>
+                            <h3 id="stat-total-voters" class="text-2xl font-extrabold text-coop-900 mt-1">0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-100 p-5 rounded-2xl flex items-center space-x-4">
+                        <div class="bg-blue-600 text-white p-4 rounded-xl shadow-md text-2xl">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-blue-800 font-semibold uppercase tracking-wider">คะแนนรวมทั้งหมด</p>
+                            <h3 id="stat-total-ballots" class="text-2xl font-extrabold text-blue-900 mt-1">0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 p-5 rounded-2xl flex items-center space-x-4">
+                        <div class="bg-amber-600 text-white p-4 rounded-xl shadow-md text-2xl">
+                            <i class="fa-solid fa-ban"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-amber-800 font-semibold uppercase tracking-wider">ไม่ประสงค์ลงคะแนน</p>
+                            <h3 id="stat-novote-count" class="text-2xl font-extrabold text-amber-900 mt-1">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart and Table View -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <!-- Chart container -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col justify-center relative min-h-[350px]">
+                        <h4 class="text-sm font-bold text-slate-700 mb-2 text-center">กราฟสรุปคะแนนเสียง</h4>
+                        <div class="flex-grow flex items-center justify-center relative h-[300px]" id="chart-wrapper">
+                            <canvas id="resultsChart"></canvas>
+                        </div>
+                    </div>
+                    <!-- Detailed Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-semibold">
+                                    <th class="p-3 text-center w-16">เบอร์</th>
+                                    <th class="p-3">ชื่อ-นามสกุล ผู้สมัคร</th>
+                                    <th class="p-3 text-right">คะแนนเสียง</th>
+                                    <th class="p-3 text-right w-24">ร้อยละ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-table-body" class="divide-y divide-slate-200 text-sm">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: ADMIN DASHBOARD ==================== -->
+        <section id="tab-admin" class="hidden space-y-6">
+            <!-- Admin Login Modal/Card if not authenticated -->
+            <div id="admin-login-box" class="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 p-6">
+                <div class="text-center mb-6">
+                    <div class="bg-slate-100 w-16 h-16 mx-auto rounded-full flex items-center justify-center text-slate-700 text-2xl mb-3 shadow-inner">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-800">เข้าสู่ระบบผู้ดูแลระบบ (Admin)</h2>
+                    <p class="text-xs text-slate-500 mt-1">กรุณากรอกรหัสผ่านเพื่อเข้าจัดการระบบ</p>
+                </div>
+
+                <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">รหัสผ่านผู้ดูแลระบบ</label>
+                        <div class="relative">
+                            <input type="password" id="admin-pass" required autocomplete="current-password" placeholder="••••••••"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-coop-500 outline-none">
+                            <button type="button" onclick="togglePasswordVisibility('admin-pass')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+                                <i class="fa-solid fa-eye" id="admin-pass-eye"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-emerald-600 mt-1.5 flex items-center">
+                            <i class="fa-solid fa-circle-info mr-1"></i> รหัสผ่านเริ่มต้น: <b class="ml-1">admin</b>
+                        </p>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl shadow transition">
+                        เข้าสู่หน้าจัดการระบบ
+                    </button>
+                    <div class="text-center pt-2">
+                        <button type="button" onclick="openResetPasswordModal()" class="text-xs text-slate-500 hover:text-slate-800 underline transition flex items-center justify-center mx-auto space-x-1">
+                            <i class="fa-solid fa-shield-halved text-slate-400"></i>
+                            <span>รีเซ็ตรหัสผ่านกลับเป็นค่าเริ่มต้น (ต้องยืนยันรหัสเดิม)</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Admin Control Panel (Hidden until authenticated) -->
+            <div id="admin-panel" class="hidden space-y-8">
+                <!-- Admin Header & Logout -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-gear text-coop-600 mr-2"></i> แผงควบคุมผู้ดูแลระบบ (Admin Dashboard)</h2>
+                        <p class="text-sm text-slate-500">จัดการผู้มีสิทธิ์เลือกตั้ง เวลาเปิด-ปิดระบบ ผู้สมัคร และตรวจสอบความเรียบร้อย</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="resetVotesToZero()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-sm px-4 py-2 rounded-xl font-semibold transition flex items-center space-x-1.5 shadow-sm">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>รีเซ็ตคะแนนให้เหลือ 0</span>
+                        </button>
+                        <button onclick="openChangePasswordModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-sm px-4 py-2 rounded-xl font-medium transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-key"></i>
+                            <span>เปลี่ยนรหัสผ่าน Admin</span>
+                        </button>
+                        <button onclick="adminLogout()" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 text-sm px-4 py-2 rounded-xl font-medium transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span>ออกจากระบบ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. Election Timing Control -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa-solid fa-clock text-coop-600 mr-2"></i> กำหนดเวลาเปิด-ปิด การลงคะแนน
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">เวลาเปิดระบบลงคะแนน</label>
+                            <input type="datetime-local" id="config-start-time" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">เวลาปิดระบบลงคะแนน</label>
+                            <input type="datetime-local" id="config-end-time" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        <button onclick="saveElectionTiming()" class="bg-coop-600 hover:bg-coop-700 text-white font-medium px-6 py-2.5 rounded-xl transition shadow">
+                            <i class="fa-solid fa-floppy-disk mr-1.5"></i> บันทึกเวลาเปิด-ปิด
+                        </button>
+                        <button onclick="forceOpenSystem()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-xl transition shadow">
+                            <i class="fa-solid fa-lock-open mr-1.5"></i> บังคับเปิดระบบทันที
+                        </button>
+                        <button onclick="forceCloseSystem()" class="bg-rose-600 hover:bg-rose-700 text-white font-medium px-4 py-2.5 rounded-xl transition shadow">
+                            <i class="fa-solid fa-lock mr-1.5"></i> บังคับปิดระบบทันที
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Eligible Voter Registry Management -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                                <i class="fa-solid fa-users-gear text-coop-600 mr-2"></i> จัดการรายชื่อผู้มีสิทธิ์ลงคะแนน (Eligible Voters)
+                            </h3>
+                            <p class="text-xs text-slate-500">ตรวจสอบและติดตามสถานะการใช้สิทธิ์ของสมาชิก</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="resetAllVotersToNotVoted()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-2 rounded-xl transition">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> รีเซ็ตให้ทุกคนยังไม่ลงคะแนน
+                            </button>
+                            <button onclick="openImportModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow transition flex items-center space-x-1.5">
+                                <i class="fa-solid fa-file-excel mr-1"></i>
+                                <span>นำเข้าไฟล์รายชื่อ (Excel / CSV)</span>
+                            </button>
+                            <button onclick="loadDemoEligibleVoters()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-semibold px-3 py-2 rounded-xl transition">
+                                <i class="fa-solid fa-file-import mr-1"></i> โหลดรายชื่อตัวอย่าง
+                            </button>
+                            <button onclick="openVoterModal()" class="bg-coop-600 hover:bg-coop-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow transition">
+                                <i class="fa-solid fa-user-plus mr-1"></i> เพิ่มผู้มีสิทธิ์
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div class="mb-4">
+                        <input type="text" id="voter-search-input" onkeyup="filterVoterRegistryTable()" placeholder="ค้นหาตามเลขสมาชิก, ชื่อ-นามสกุล หรือสังกัด..." 
+                            class="w-full max-w-md px-4 py-2 text-sm rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                    </div>
+
+                    <!-- Voter List Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-xs uppercase font-semibold">
+                                    <th class="p-3">เลขสมาชิก</th>
+                                    <th class="p-3">ชื่อ - นามสกุล</th>
+                                    <th class="p-3">สังกัด / โรงเรียน</th>
+                                    <th class="p-3 text-center">สถานะการลงคะแนน</th>
+                                    <th class="p-3">เวลาที่ลงคะแนน</th>
+                                    <th class="p-3 text-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-voter-registry-table" class="divide-y divide-slate-200 text-sm">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Candidate Management -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-address-card text-coop-600 mr-2"></i> จัดการข้อมูลผู้สมัครรับเลือกตั้ง
+                        </h3>
+                        <button onclick="openCandidateModal()" class="bg-coop-600 hover:bg-coop-700 text-white text-sm font-medium px-4 py-2 rounded-xl shadow transition">
+                            <i class="fa-solid fa-plus mr-1"></i> เพิ่มผู้สมัครใหม่
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-xs uppercase font-semibold">
+                                    <th class="p-3 text-center w-20">หมายเลข</th>
+                                    <th class="p-3">ชื่อ-นามสกุล</th>
+                                    <th class="p-3">สังกัด / โรงเรียน / หน่วยเลือกตั้ง</th>
+                                    <th class="p-3 text-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-candidates-table" class="divide-y divide-slate-200 text-sm">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. System Data Controls -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100 space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-calculator text-coop-600 mr-2"></i> การจัดการผลคะแนนและการรีเซ็ตระบบ
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- กล่องรีเซ็ตคะแนนให้เหลือ 0 (ปุ่มที่ผู้ใช้ต้องการ) -->
+                        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2 text-amber-900 font-bold mb-1.5">
+                                    <i class="fa-solid fa-rotate-left text-lg text-amber-600"></i>
+                                    <h4 class="text-base">รีเซ็ตคะแนนเสียงให้เหลือ 0 (Reset Votes to 0)</h4>
+                                </div>
+                                <p class="text-xs text-amber-800 leading-relaxed mb-4">
+                                    ล้างเฉพาะคะแนนเสียงที่ลงไว้ทั้งหมดให้กลับเป็น <b>0 คะแนน</b> และคืนสิทธิ์ให้สมาชิกทุกคนสามารถลงคะแนนได้ใหม่ <br>
+                                    <span class="text-emerald-700 font-bold">✓ รายชื่อผู้มีสิทธิ์และรายชื่อผู้สมัครจะไม่ถูกลบ</span>
+                                </p>
+                            </div>
+                            <button onclick="resetVotesToZero()" class="w-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>รีเซ็ตคะแนนทั้งหมดให้เหลือ 0</span>
+                            </button>
+                        </div>
+
+                        <!-- กล่องล้างข้อมูลระบบทั้งหมด (คืนค่าเริ่มต้น) -->
+                        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2 text-rose-900 font-bold mb-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation text-lg text-rose-600"></i>
+                                    <h4 class="text-base">รีเซ็ตระบบทั้งหมดเป็นค่าเริ่มต้น (Reset All)</h4>
+                                </div>
+                                <p class="text-xs text-rose-800 leading-relaxed mb-4">
+                                    ล้างคะแนนทั้งหมด คืนสถานะผู้มีสิทธิ์ให้ยังไม่ลงคะแนน และเปิดระบบพร้อมลงคะแนนใหม่ทันที
+                                </p>
+                            </div>
+                            <button onclick="resetAllData()" class="w-full bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>ล้างคะแนนและรีเซ็ตระบบทั้งหมด</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Adding/Editing Eligible Voter (Admin) -->
+    <div id="voter-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 id="voter-modal-title" class="text-xl font-bold text-slate-800 mb-4">เพิ่มผู้มีสิทธิ์เลือกตั้ง</h3>
+            <form id="voter-form" onsubmit="saveEligibleVoter(event)" class="space-y-4">
+                <input type="hidden" id="edit-voter-index">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">เลขประจำตัวสมาชิก</label>
+                    <input type="text" id="add-voter-id" required placeholder="เช่น 10006" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">ชื่อ - นามสกุล</label>
+                    <input type="text" id="add-voter-name" required placeholder="เช่น นายประเสริฐ ชัยเจริญ" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">สังกัด / โรงเรียน</label>
+                    <input type="text" id="add-voter-org" required placeholder="เช่น โรงเรียนบ้านวังชมภู" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button type="button" onclick="closeVoterModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 bg-coop-600 hover:bg-coop-700 text-white font-medium py-2.5 rounded-xl shadow transition">บันทึกรายชื่อ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Voting -->
+    <div id="vote-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all scale-95 opacity-0" id="modal-content-box">
+            <div class="text-center mb-4">
+                <div class="w-16 h-16 bg-coop-100 text-coop-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3 shadow-inner">
+                    <i class="fa-solid fa-check-to-slot"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800">ยืนยันการลงคะแนนเสียง</h3>
+                <p class="text-sm text-slate-500 mt-1">ท่านกำลังจะลงคะแนนให้แก่:</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center mb-6">
+                <h4 id="modal-candidate-name" class="text-lg font-bold text-coop-900">-</h4>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-800 mb-6 flex items-start space-x-2">
+                <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                <span>คำเตือน: เมื่อกดยืนยันแล้วจะไม่สามารถแก้ไขหรือลงคะแนนซ้ำได้ ระบบจะบันทึกผลโดยไม่ระบุตัวตนของท่าน</span>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="closeVoteModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition">
+                    ยกเลิก
+                </button>
+                <button onclick="submitVote()" class="flex-1 bg-coop-600 hover:bg-coop-700 text-white font-medium py-2.5 rounded-xl shadow-lg shadow-coop-600/30 transition">
+                    ยืนยันการลงคะแนน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Candidate Add/Edit Modal (Admin) -->
+    <div id="candidate-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 id="candidate-modal-title" class="text-xl font-bold text-slate-800 mb-4">เพิ่มผู้สมัครใหม่</h3>
+            <form id="candidate-form" onsubmit="saveCandidate(event)" class="space-y-4">
+                <input type="hidden" id="edit-candidate-id">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">หมายเลขผู้สมัคร</label>
+                    <input type="number" id="cand-number" required min="1" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">ชื่อ - นามสกุล ผู้สมัคร</label>
+                    <input type="text" id="cand-name" required placeholder="เช่น นายสมคิด รักษ์ชมภู" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">สังกัด / โรงเรียน / หน่วยเลือกตั้ง</label>
+                    <input type="text" id="cand-org" required placeholder="เช่น โรงเรียนบ้านวังชมภู" class="w-full px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button type="button" onclick="closeCandidateModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 bg-coop-600 hover:bg-coop-700 text-white font-medium py-2.5 rounded-xl shadow transition">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Password Change Modal -->
+    <div id="change-pass-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="bg-amber-100 text-amber-700 p-2.5 rounded-xl">
+                    <i class="fa-solid fa-key text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">เปลี่ยนรหัสผ่านผู้ดูแลระบบ</h3>
+                    <p class="text-xs text-slate-500">กำหนดรหัสผ่านใหม่เพื่อความปลอดภัย</p>
+                </div>
+            </div>
+            <form id="change-pass-form" onsubmit="saveCustomAdminPassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">รหัสผ่านปัจจุบัน</label>
+                    <input type="password" id="curr-admin-pass" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">รหัสผ่านใหม่</label>
+                    <input type="password" id="new-admin-pass" minlength="4" required placeholder="อย่างน้อย 4 ตัวอักษร" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
+                    <input type="password" id="confirm-admin-pass" minlength="4" required placeholder="พิมพ์รหัสผ่านใหม่อีกครั้ง" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-coop-500">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button type="button" onclick="closeChangePasswordModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 bg-coop-600 hover:bg-coop-700 text-white font-medium py-2.5 rounded-xl shadow transition">บันทึกรหัสผ่าน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Password Reset Modal (Requires entering current password first) -->
+    <div id="reset-pass-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="bg-rose-100 text-rose-700 p-2.5 rounded-xl">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">ยืนยันความปลอดภัยเพื่อรีเซ็ต</h3>
+                    <p class="text-xs text-slate-500">กรุณากรอกรหัสผ่านเดิมก่อนทำการรีเซ็ต</p>
+                </div>
+            </div>
+            <form id="reset-pass-form" onsubmit="handleSecureResetPassword(event)" class="space-y-4">
+                <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-800 flex items-start space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600 flex-shrink-0"></i>
+                    <span>เพื่อความปลอดภัยของระบบ ท่านต้องกรอกรหัสผ่านเดิมที่ตั้งไว้ให้ถูกต้องก่อน จึงจะสามารถรีเซ็ตรหัสผ่านกลับเป็นค่าเริ่มต้น (admin) ได้</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">รหัสผ่านปัจจุบันที่ตั้งไว้</label>
+                    <div class="relative">
+                        <input type="password" id="reset-verify-curr-pass" required placeholder="••••••••" 
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-rose-500">
+                        <button type="button" onclick="togglePasswordVisibility('reset-verify-curr-pass')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+                            <i class="fa-solid fa-eye" id="reset-verify-curr-pass-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button type="button" onclick="closeResetPasswordModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium py-2.5 rounded-xl shadow transition">ยืนยันรีเซ็ตรหัสผ่าน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Importing Eligible Voters (Excel / CSV) -->
+    <div id="import-voters-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[92vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-emerald-100 text-emerald-800 p-2.5 rounded-xl">
+                        <i class="fa-solid fa-file-excel text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">นำเข้ารายชื่อผู้มีสิทธิ์เลือกตั้ง</h3>
+                        <p class="text-xs text-slate-500">รองรับไฟล์ Excel (.xlsx, .xls) และไฟล์ CSV (.csv)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="py-4 space-y-4 overflow-y-auto flex-grow">
+                <!-- Template Download Card -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between gap-2">
+                    <div>
+                        <div class="text-xs font-bold text-emerald-950 flex items-center">
+                            <i class="fa-solid fa-circle-info mr-1 text-emerald-600"></i> เทมเพลตไฟล์ตัวอย่าง
+                        </div>
+                        <div class="text-[11px] text-emerald-800 mt-0.5">รูปแบบ 3 คอลัมน์: <b>เลขสมาชิก, ชื่อ-นามสกุล, สังกัด/โรงเรียน</b></div>
+                    </div>
+                    <button type="button" onclick="downloadVoterTemplate()" class="bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 flex-shrink-0">
+                        <i class="fa-solid fa-download"></i>
+                        <span>โหลดไฟล์ตัวอย่าง</span>
+                    </button>
+                </div>
+
+                <!-- Dropzone / File Select Area -->
+                <div id="dropzone" onclick="document.getElementById('voter-file-input').click()" 
+                    class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-2xl p-6 text-center cursor-pointer transition">
+                    <input type="file" id="voter-file-input" accept=".xlsx,.xls,.csv,.txt" onchange="handleFileSelect(event)" class="hidden">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 text-emerald-600 shadow-sm border border-slate-200">
+                        <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                    </div>
+                    <div class="text-sm font-bold text-slate-700" id="upload-label-main">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</div>
+                    <div class="text-xs text-slate-400 mt-1" id="upload-label-sub">รองรับไฟล์ Excel (.xlsx, .xls) หรือ CSV (.csv)</div>
+                </div>
+
+                <!-- Import Mode Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">รูปแบบการนำเข้าข้อมูล:</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50">
+                            <input type="radio" name="import-mode" value="append" checked class="text-emerald-600 focus:ring-emerald-500 mr-2">
+                            <span><b>เพิ่มต่อท้าย</b> (ข้ามเลขที่ซ้ำ)</span>
+                        </label>
+                        <label class="flex items-center p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
+                            <input type="radio" name="import-mode" value="replace" class="text-rose-600 focus:ring-rose-500 mr-2">
+                            <span class="text-rose-700"><b>แทนที่ทั้งหมด</b> (ล้างเดิม)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Preview Area (Shown after parsing) -->
+                <div id="import-preview-area" class="hidden space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-700" id="import-count-badge">พบข้อมูลทั้งหมด 0 รายการ</span>
+                        <span class="text-emerald-600 font-semibold text-[11px]"><i class="fa-solid fa-check-circle mr-1"></i>ตรวจสอบรูปแบบถูกต้อง</span>
+                    </div>
+                    <div class="max-h-40 overflow-y-auto rounded-xl border border-slate-200 text-xs">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-100 text-slate-600 sticky top-0">
+                                <tr>
+                                    <th class="p-2 w-20">เลขสมาชิก</th>
+                                    <th class="p-2">ชื่อ - นามสกุล</th>
+                                    <th class="p-2">สังกัด / โรงเรียน</th>
+                                </tr>
+                            </thead>
+                            <tbody id="import-preview-body" class="divide-y divide-slate-100 bg-white">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeImportModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition text-sm">ยกเลิก</button>
+                <button type="button" id="btn-submit-import" onclick="confirmImportVoters()" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-xl shadow transition text-sm flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>ยืนยันการนำเข้า</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification Toast -->
+    <div id="notification-box" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 max-w-sm w-full bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 flex items-center space-x-3 pointer-events-none">
+        <div id="notif-icon" class="text-2xl text-coop-600 flex-shrink-0"></div>
+        <div class="flex-grow">
+            <h4 id="notif-title" class="font-bold text-sm text-slate-800">แจ้งเตือน</h4>
+            <p id="notif-message" class="text-xs text-slate-600 mt-0.5 leading-relaxed"></p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2569 สหกรณ์ออมทรัพย์ครูเพชรบูรณ์ จำกัด - หน่วยเลือกตั้งกลุ่มโรงเรียนวังชมภู</p>
+            <p class="mt-1 opacity-75">ระบบเลือกตั้งอิเล็กทรอนิกส์ผู้แทนสมาชิกเพื่อความโปร่งใส ถูกต้อง และตรวจสอบได้</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Demo Candidates - Wang Chomphu School Group
+        const DEFAULT_CANDIDATES = [
+            { id: 1, number: 1, name: "นายสมคิด รักษ์ชมภู", org: "โรงเรียนบ้านวังชมภู" },
+            { id: 2, number: 2, name: "นางวิไลวรรณ ยาวีเจริญ", org: "โรงเรียนบ้านยาวี-ห้วยโป่ง" },
+            { id: 3, number: 3, name: "นายประเสริฐ เฉียงพ้องวิทยา", org: "โรงเรียนบ้านเฉียงพ้อง" },
+            { id: 4, number: 4, name: "นางสาวกนกพร นายมพัฒนา", org: "โรงเรียนบ้านนายม" }
+        ];
+
+        // Demo Eligible Voters Registry - Wang Chomphu School Group
+        const DEFAULT_ELIGIBLE_VOTERS = [
+            { memberId: "10001", name: "นายสมชาย ใจดี", org: "โรงเรียนบ้านวังชมภู", hasVoted: false, votedAt: null },
+            { memberId: "10002", name: "นางสาวมณี รัตนะ", org: "โรงเรียนบ้านยาวี-ห้วยโป่ง", hasVoted: false, votedAt: null },
+            { memberId: "10003", name: "นายวิทยา บุญมี", org: "โรงเรียนบ้านเฉียงพ้อง", hasVoted: false, votedAt: null },
+            { memberId: "10004", name: "นางสมศรี สุขสรรค์", org: "โรงเรียนบ้านนายม", hasVoted: false, votedAt: null },
+            { memberId: "10005", name: "นายอาทิตย์ แสงทอง", org: "โรงเรียนบ้านวังชมภู", hasVoted: false, votedAt: null }
+        ];
+
+        const ADMIN_PASS_KEY = 'wcp2569_admin_password';
+        const DEFAULT_ADMIN_PASS = 'admin';
+
+        // Safe Storage Helper
+        function makeSafeStorage(getNative) {
+            let native = null;
+            try {
+                native = getNative();
+                native.setItem('__coop_test__', '1');
+                native.removeItem('__coop_test__');
+            } catch (e) { native = null; }
+            const mem = {};
+            return {
+                persistent: !!native,
+                getItem(k) { try { return native ? native.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { return k in mem ? mem[k] : null; } },
+                setItem(k, v) { mem[k] = String(v); try { if (native) native.setItem(k, String(v)); } catch (e) {} },
+                removeItem(k) { delete mem[k]; try { if (native) native.removeItem(k); } catch (e) {} }
+            };
+        }
+        const LS = makeSafeStorage(() => window.localStorage);
+        const SS = makeSafeStorage(() => window.sessionStorage);
+
+        function readJSON(key) {
+            try {
+                const v = JSON.parse(LS.getItem(key));
+                if (v !== null && v !== undefined) return v;
+            } catch (e) {}
+            return getDefaultFor(key);
+        }
+
+        function toLocalInputValue(date) {
+            const p = n => String(n).padStart(2, '0');
+            return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}T${p(date.getHours())}:${p(date.getMinutes())}`;
+        }
+
+        function getDefaultFor(key) {
+            const now = new Date();
+            switch (key) {
+                case 'coop_candidates': return JSON.parse(JSON.stringify(DEFAULT_CANDIDATES));
+                case 'coop_eligible_voters': return JSON.parse(JSON.stringify(DEFAULT_ELIGIBLE_VOTERS));
+                case 'coop_votes': return [];
+                case 'coop_timing': return {
+                    start: toLocalInputValue(new Date(now.getTime() - 60 * 60 * 1000)), // เปิดตั้งแต่ 1 ชั่วโมงที่แล้ว
+                    end: toLocalInputValue(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)), // เปิดต่ออีก 7 วัน
+                    forcedState: 'open' // บังคับเปิดเป็นค่าเริ่มต้น เพื่อให้ทดสอบได้ทันที!
+                };
+                default: return null;
+            }
+        }
+
+        function getAdminPassword() {
+            const p = LS.getItem(ADMIN_PASS_KEY);
+            return (p && p.trim()) ? p.trim() : DEFAULT_ADMIN_PASS;
+        }
+
+        // Initialize Data Storage & Auto Recovery
+        function ensureStored(key, isValid) {
+            let ok = false;
+            try { 
+                const data = JSON.parse(LS.getItem(key));
+                ok = isValid(data); 
+            } catch (e) { ok = false; }
+            if (!ok) LS.setItem(key, JSON.stringify(getDefaultFor(key)));
+        }
+
+        ensureStored('coop_candidates', Array.isArray);
+        ensureStored('coop_eligible_voters', Array.isArray);
+        ensureStored('coop_votes', Array.isArray);
+        ensureStored('coop_timing', v => v && typeof v === 'object' && v.start && v.end);
+
+        let currentVoter = null;
+        try { currentVoter = JSON.parse(SS.getItem('coop_current_voter')) || null; } catch (e) { currentVoter = null; }
+        let isAdminLoggedIn = SS.getItem('coop_admin_authenticated') === 'true';
+        let selectedVoteCandidate = null;
+        let resultsChartInstance = null;
+
+        window.onload = function() {
+            renderQuickVoterButtons();
+            const isOpen = checkSystemStatus();
+            setInterval(checkSystemStatus, 1000);
+            
+            if (currentVoter) {
+                if (isOpen) {
+                    showVotingBooth();
+                } else {
+                    currentVoter = null;
+                    SS.removeItem('coop_current_voter');
+                }
+            }
+            
+            loadCandidatesForVoter();
+            try { loadPublicResults(); } catch (e) { console.error(e); }
+
+            // Drag and Drop สำหรับกล่องอัปโหลดไฟล์
+            const dropzone = document.getElementById('dropzone');
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, e => {
+                        e.preventDefault();
+                        dropzone.classList.add('border-emerald-500', 'bg-emerald-50');
+                    }, false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, e => {
+                        e.preventDefault();
+                        dropzone.classList.remove('border-emerald-500', 'bg-emerald-50');
+                    }, false);
+                });
+                dropzone.addEventListener('drop', e => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files && files.length > 0) {
+                        processUploadedFile(files[0]);
+                    }
+                }, false);
+            }
+        };
+
+        // Render Quick Demo Voter Buttons (ถ้ามี)
+        function renderQuickVoterButtons() {
+            const container = document.getElementById('quick-demo-voters');
+            if (!container) return;
+            const voters = readJSON('coop_eligible_voters');
+            container.innerHTML = voters.slice(0, 5).map(v => {
+                const votedMark = v.hasVoted ? ' (ลงคะแนนแล้ว)' : '';
+                const btnColor = v.hasVoted ? 'bg-slate-200 text-slate-500' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200';
+                return `
+                    <button type="button" onclick="quickFillVoter('${v.memberId}')" 
+                        class="text-xs px-2.5 py-1 rounded-lg transition font-medium ${btnColor}">
+                        ${v.memberId} ${v.name}${votedMark}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function quickFillVoter(id) {
+            document.getElementById('member-id').value = id;
+            lookupMember(id, true);
+        }
+
+        // Tab Switcher
+        function switchTab(tabName) {
+            document.getElementById('tab-voter').classList.add('hidden');
+            document.getElementById('tab-result').classList.add('hidden');
+            document.getElementById('tab-admin').classList.add('hidden');
+
+            document.getElementById('nav-voter').className = "px-4 py-2 rounded-lg text-sm font-medium transition duration-200 text-coop-100 hover:bg-coop-800";
+            document.getElementById('nav-result').className = "px-4 py-2 rounded-lg text-sm font-medium transition duration-200 text-coop-100 hover:bg-coop-800";
+            document.getElementById('nav-admin').className = "px-4 py-2 rounded-lg text-sm font-medium transition duration-200 text-coop-100 hover:bg-coop-800";
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabName}`).className = "px-4 py-2 rounded-lg text-sm font-medium transition duration-200 bg-white text-coop-900 shadow";
+
+            if (tabName === 'result') loadPublicResults();
+            if (tabName === 'admin') {
+                if (isAdminLoggedIn) {
+                    document.getElementById('admin-login-box').classList.add('hidden');
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                    loadAdminTiming();
+                    loadAdminCandidates();
+                    loadAdminVoterRegistry();
+                } else {
+                    document.getElementById('admin-panel').classList.add('hidden');
+                    document.getElementById('admin-login-box').classList.remove('hidden');
+                }
+            }
+        }
+
+        // Timing & Status Checker
+        function checkSystemStatus() {
+            const timing = readJSON('coop_timing');
+            const now = new Date();
+            const startDate = new Date(timing.start);
+            const endDate = new Date(timing.end);
+
+            let isOpen = false;
+            let statusText = "";
+            let statusDesc = "";
+            let statusIconEmoji = "";
+
+            if (timing.forcedState === 'open') {
+                isOpen = true;
+                statusText = "ระบบเปิดให้ลงคะแนนแล้ว (โหมดเปิดระบบ)";
+                statusDesc = `กำหนดปิดอัตโนมัติ: ${endDate.toLocaleString('th-TH')}`;
+                statusIconEmoji = "🟢";
+            } else if (timing.forcedState === 'closed') {
+                isOpen = false;
+                statusText = "ปิดรับการลงคะแนนแล้ว (ปิดโดยผู้ดูแลระบบ)";
+                statusDesc = "ขอบคุณสมาชิกทุกท่านที่ร่วมใช้สิทธิ์ลงคะแนน";
+                statusIconEmoji = "🔴";
+            } else if (now < startDate) {
+                isOpen = false;
+                statusText = "ยังไม่ถึงเวลาเปิดลงคะแนน";
+                statusDesc = `ระบบจะเปิดให้ลงคะแนนในวันที่ ${startDate.toLocaleString('th-TH')}`;
+                statusIconEmoji = "⏳";
+            } else if (now >= startDate && now <= endDate) {
+                isOpen = true;
+                statusText = "ระบบเปิดให้ลงคะแนนเลือกตั้งตามกำหนดเวลา";
+                statusDesc = `ปิดรับคะแนนในวันที่ ${endDate.toLocaleString('th-TH')}`;
+                statusIconEmoji = "🟢";
+            } else {
+                isOpen = false;
+                statusText = "สิ้นสุดระยะเวลาการลงคะแนนเลือกตั้ง";
+                statusDesc = `ระบบปิดรับคะแนนเมื่อวันที่ ${endDate.toLocaleString('th-TH')}`;
+                statusIconEmoji = "🔒";
+            }
+
+            const banner = document.getElementById('system-status-banner');
+            document.getElementById('status-icon').innerText = statusIconEmoji;
+            document.getElementById('status-title').innerText = statusText;
+            document.getElementById('status-desc').innerText = statusDesc;
+
+            const closedCard = document.getElementById('system-closed-card');
+            const voterLoginCard = document.getElementById('voter-login-card');
+            const boothPanel = document.getElementById('voting-booth-panel');
+
+            if (isOpen) {
+                banner.className = "mb-6 p-4 rounded-xl shadow-sm border bg-emerald-50 border-emerald-200 text-emerald-900 flex flex-col md:flex-row items-center justify-between gap-3";
+                if (closedCard) closedCard.classList.add('hidden');
+                if (voterLoginCard && (!boothPanel || boothPanel.classList.contains('hidden'))) {
+                    voterLoginCard.classList.remove('hidden');
+                }
+            } else {
+                banner.className = "mb-6 p-4 rounded-xl shadow-sm border bg-rose-50 border-rose-200 text-rose-900 flex flex-col md:flex-row items-center justify-between gap-3";
+                if (closedCard) {
+                    closedCard.classList.remove('hidden');
+                    const closedDesc = document.getElementById('closed-card-desc');
+                    if (closedDesc) closedDesc.innerText = statusDesc || "ขณะนี้ไม่อยู่ในช่วงเวลาเปิดรับลงคะแนน สมาชิกไม่สามารถลงคะแนนได้";
+                }
+                if (voterLoginCard) voterLoginCard.classList.add('hidden');
+
+                // หากอยู่ในคูหาขณะระบบปิดลง ให้ยกเลิกและออกจากคูหาทันที เพื่อความปลอดภัย
+                if (typeof closeVoteModal === 'function') closeVoteModal();
+                if (boothPanel && !boothPanel.classList.contains('hidden')) {
+                    boothPanel.classList.add('hidden');
+                    if (currentVoter) {
+                        currentVoter = null;
+                        SS.removeItem('coop_current_voter');
+                        showNotification("ระบบปิดรับคะแนนแล้ว", "หมดเวลาลงคะแนน ระบบได้ปิดรับการลงคะแนนเรียบร้อยแล้ว", "warning");
+                    }
+                }
+            }
+
+            let targetDate = (now < startDate) ? startDate : endDate;
+            let diff = targetDate - now;
+            if (diff > 0) {
+                let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                const dayStr = days > 0 ? `${days} วัน ` : '';
+                document.getElementById('timer-display').innerText = `เวลาเหลือ: ${dayStr}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                if (timing.forcedState === 'open') {
+                    document.getElementById('timer-display').innerText = "สถานะ: เปิดให้ลงคะแนนตลอดเวลา";
+                } else {
+                    document.getElementById('timer-display').innerText = "สถานะ: สิ้นสุด/นอกเวลา";
+                }
+            }
+
+            return isOpen;
+        }
+
+        // Voter Authentication & Real-time Verification
+        function handleMemberIdInput() {
+            if (!checkSystemStatus()) return;
+            const inputVal = document.getElementById('member-id').value.trim();
+            if (!inputVal) {
+                document.getElementById('voter-result-box').classList.add('hidden');
+                document.getElementById('voter-not-found-box').classList.add('hidden');
+                return;
+            }
+            // ค้นหาแบบอัตโนมัติเมื่อพิมพ์เลขสมาชิก
+            lookupMember(inputVal, false);
+        }
+
+        function verifyMemberId() {
+            if (!checkSystemStatus()) {
+                showNotification("ระบบปิดรับคะแนนแล้ว", "ขณะนี้ไม่อยู่ในช่วงเวลาเปิดรับลงคะแนนเลือกตั้ง", "error");
+                return;
+            }
+            const inputVal = document.getElementById('member-id').value.trim();
+            if (!inputVal) {
+                showNotification("กรุณากรอกเลขสมาชิก", "กรุณาระบุเลขประจำตัวสมาชิกของท่าน", "error");
+                document.getElementById('member-id').focus();
+                return;
+            }
+            lookupMember(inputVal, true);
+        }
+
+        function lookupMember(id, isExplicit = false) {
+            const resultBox = document.getElementById('voter-result-box');
+            const notFoundBox = document.getElementById('voter-not-found-box');
+
+            if (!checkSystemStatus()) {
+                if (isExplicit) {
+                    showNotification("ระบบปิดรับคะแนนแล้ว", "ขณะนี้ไม่อยู่ในช่วงเวลาเปิดลงคะแนน หรือระบบปิดรับการลงคะแนนแล้ว กรุณาติดต่อผู้ดูแลระบบ", "error");
+                }
+                return;
+            }
+
+            const registry = readJSON('coop_eligible_voters');
+            const voterRecord = registry.find(v => String(v.memberId).trim().toLowerCase() === String(id).trim().toLowerCase());
+
+            if (!voterRecord) {
+                resultBox.classList.add('hidden');
+                if (isExplicit) {
+                    notFoundBox.classList.remove('hidden');
+                    document.getElementById('not-found-desc').innerText = `ไม่พบเลขประจำตัวสมาชิก "${id}" ในบัญชีผู้มีสิทธิ์เลือกตั้ง กรุณาตรวจสอบใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ`;
+                    showNotification("ไม่พบเลขสมาชิก", `ไม่พบเลขประจำตัวสมาชิก ${id} ในบัญชีผู้มีสิทธิ์เลือกตั้ง`, "error");
+                } else {
+                    notFoundBox.classList.add('hidden');
+                }
+                return;
+            }
+
+            // พบข้อมูลสมาชิก
+            notFoundBox.classList.add('hidden');
+            resultBox.classList.remove('hidden');
+
+            if (voterRecord.hasVoted) {
+                const timeStr = voterRecord.votedAt ? new Date(voterRecord.votedAt).toLocaleString('th-TH') : "ก่อนหน้านี้";
+                resultBox.innerHTML = `
+                    <div class="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-4 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                                <span>สมาชิกใช้สิทธิ์แล้ว</span>
+                            </span>
+                            <span class="text-xs text-amber-700 font-semibold font-mono">รหัส ${voterRecord.memberId}</span>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm space-y-2 text-left">
+                            <div>
+                                <span class="text-xs text-slate-400 block font-medium">ชื่อ - นามสกุล</span>
+                                <span class="text-xl font-bold text-slate-800">${voterRecord.name}</span>
+                            </div>
+                            <div class="pt-2 border-t border-slate-100 text-xs">
+                                <span class="text-slate-400 block">สังกัด / โรงเรียน</span>
+                                <span class="font-semibold text-slate-700">${voterRecord.org}</span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-exclamation mt-0.5 text-rose-600 flex-shrink-0"></i>
+                            <div>
+                                <div class="font-bold">ท่านได้ใช้สิทธิ์ลงคะแนนเรียบร้อยแล้ว</div>
+                                <div>บันทึกเวลาเมื่อ: ${timeStr} (ระบบไม่อนุญาตให้ลงคะแนนซ้ำ)</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultBox.innerHTML = `
+                    <div class="p-5 rounded-2xl bg-emerald-50/90 border-2 border-emerald-400 text-emerald-950 space-y-4 shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                <span>พบข้อมูลผู้มีสิทธิ์</span>
+                            </span>
+                            <span class="text-xs text-emerald-700 font-semibold font-mono">รหัส ${voterRecord.memberId}</span>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-inner space-y-2.5 text-left">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-400 font-medium">ชื่อ - นามสกุล ผู้มีสิทธิ์</span>
+                                    <span class="text-[11px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
+                                        <i class="fa-solid fa-check mr-1"></i>ยังไม่ได้ลงคะแนน
+                                    </span>
+                                </div>
+                                <div class="text-2xl font-black text-slate-800 mt-0.5">${voterRecord.name}</div>
+                            </div>
+                            <div class="pt-2 border-t border-slate-100 text-xs flex justify-between items-center">
+                                <div>
+                                    <span class="text-slate-400 block">สังกัด / โรงเรียน</span>
+                                    <span class="font-semibold text-slate-700">${voterRecord.org}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-slate-400 block">เลขประจำตัว</span>
+                                    <span class="font-mono font-bold text-slate-800 text-sm">${voterRecord.memberId}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center text-xs text-slate-600 bg-emerald-100/60 p-2.5 rounded-xl border border-emerald-200">
+                            🔍 <b>โปรดตรวจสอบ:</b> หากชื่อ-นามสกุล และสังกัดถูกต้องตรงกับท่าน ให้กดปุ่มด้านล่างเพื่อเข้าคูหาลงคะแนน
+                        </div>
+
+                        <button type="button" onclick="confirmAndEnterBooth('${voterRecord.memberId}')" 
+                            class="w-full bg-coop-600 hover:bg-coop-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-coop-600/30 transition duration-200 flex items-center justify-center space-x-2 text-base">
+                            <span>ชื่อตรงกับข้าพเจ้า • เข้าสู่คูหาลงคะแนน</span>
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function confirmAndEnterBooth(memberId) {
+            if (!checkSystemStatus()) {
+                showNotification("ระบบปิดรับคะแนนแล้ว", "ไม่อยู่ในช่วงเวลาเปิดรับลงคะแนนเลือกตั้ง ไม่สามารถเข้าคูหาได้", "error");
+                return;
+            }
+
+            const registry = readJSON('coop_eligible_voters');
+            const voterRecord = registry.find(v => String(v.memberId).trim().toLowerCase() === String(memberId).trim().toLowerCase());
+
+            if (!voterRecord) {
+                showNotification("ผิดพลาด", "ไม่พบข้อมูลสมาชิก", "error");
+                return;
+            }
+
+            if (voterRecord.hasVoted) {
+                showNotification("ท่านได้ลงคะแนนแล้ว", "ไม่สามารถลงคะแนนซ้ำได้", "error");
+                return;
+            }
+
+            currentVoter = voterRecord;
+            SS.setItem('coop_current_voter', JSON.stringify(currentVoter));
+            showNotification("ยืนยันตัวตนสำเร็จ", `ยินดีต้อนรับ คุณ${voterRecord.name}`, "success");
+            showVotingBooth();
+        }
+
+        function showVotingBooth() {
+            document.getElementById('voter-login-card').classList.add('hidden');
+            document.getElementById('voting-booth-panel').classList.remove('hidden');
+            document.getElementById('logged-voter-info').innerText = `สมาชิก: ${currentVoter.name} (เลขที่: ${currentVoter.memberId})`;
+            document.getElementById('logged-voter-org').innerText = `สังกัด: ${currentVoter.org}`;
+            loadCandidatesForVoter();
+        }
+
+        function logoutVoter() {
+            currentVoter = null;
+            SS.removeItem('coop_current_voter');
+            document.getElementById('voting-booth-panel').classList.add('hidden');
+            if (checkSystemStatus()) {
+                document.getElementById('voter-login-card').classList.remove('hidden');
+            } else {
+                document.getElementById('voter-login-card').classList.add('hidden');
+                const closedCard = document.getElementById('system-closed-card');
+                if (closedCard) closedCard.classList.remove('hidden');
+            }
+            document.getElementById('member-id').value = '';
+            document.getElementById('voter-result-box').classList.add('hidden');
+            document.getElementById('voter-not-found-box').classList.add('hidden');
+            renderQuickVoterButtons();
+            showNotification("ออกจากระบบ", "ออกจากคูหาเลือกตั้งเรียบร้อย", "info");
+        }
+
+        // Candidates Display
+        function loadCandidatesForVoter() {
+            const container = document.getElementById('candidates-container');
+            const candidates = readJSON('coop_candidates');
+
+            if (candidates.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400">ยังไม่มีรายชื่อผู้สมัครรับเลือกตั้งในระบบ</div>`;
+                return;
+            }
+
+            container.innerHTML = candidates.map(cand => `
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-coop-500 transition group">
+                    <div class="bg-gradient-to-br from-coop-800 via-coop-700 to-coop-900 p-6 text-white text-center flex flex-col items-center justify-center relative">
+                        <div class="w-20 h-20 rounded-2xl bg-white text-coop-900 font-black text-4xl flex items-center justify-center shadow-lg border-4 border-emerald-400 group-hover:scale-105 transition duration-200">
+                            ${cand.number}
+                        </div>
+                        <span class="text-xs text-coop-100 font-semibold uppercase tracking-wider mt-2.5">
+                            ผู้สมัครหมายเลข ${cand.number}
+                        </span>
+                    </div>
+                    <div class="p-5 flex-grow text-center">
+                        <h4 class="text-lg font-bold text-slate-800 leading-snug">${cand.name}</h4>
+                        <p class="text-xs text-slate-500 mt-2 flex items-center justify-center">
+                            <i class="fa-solid fa-school text-coop-600 mr-1.5 flex-shrink-0"></i> 
+                            <span>${cand.org}</span>
+                        </p>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button onclick="confirmVoteSelection('${cand.number}', '${cand.name} (หมายเลข ${cand.number})')" class="w-full bg-coop-600 hover:bg-coop-700 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-check"></i>
+                            <span>ลงคะแนนเบอร์ ${cand.number}</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function confirmVoteSelection(choiceKey, choiceLabel) {
+            selectedVoteCandidate = choiceKey;
+            document.getElementById('modal-candidate-name').innerText = choiceLabel;
+            
+            const modal = document.getElementById('vote-modal');
+            const content = document.getElementById('modal-content-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeVoteModal() {
+            const modal = document.getElementById('vote-modal');
+            const content = document.getElementById('modal-content-box');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        // Vote Submission
+        function submitVote() {
+            if (!currentVoter) return;
+
+            if (!checkSystemStatus()) {
+                showNotification("ระบบปิดรับคะแนนแล้ว", "หมดเวลาหรือระบบปิดรับการลงคะแนนเลือกตั้งแล้ว ไม่สามารถบันทึกคะแนนได้", "error");
+                closeVoteModal();
+                logoutVoter();
+                return;
+            }
+
+            // 1. Save Anonymous Vote Choice
+            const votes = readJSON('coop_votes');
+            votes.push(selectedVoteCandidate);
+            LS.setItem('coop_votes', JSON.stringify(votes));
+
+            // 2. Mark Voter as 'Voted' in Registry with Timestamp
+            let registry = readJSON('coop_eligible_voters');
+            registry = registry.map(v => {
+                if (v.memberId === currentVoter.memberId) {
+                    return { ...v, hasVoted: true, votedAt: new Date().toISOString() };
+                }
+                return v;
+            });
+            LS.setItem('coop_eligible_voters', JSON.stringify(registry));
+
+            closeVoteModal();
+            showNotification("ลงคะแนนสำเร็จ!", "บันทึกคะแนนเสียงของท่านเรียบร้อยแล้ว ขอบคุณที่มาใช้สิทธิ์", "success");
+            logoutVoter();
+            loadPublicResults();
+        }
+
+        // Public Results Dashboard
+        function loadPublicResults() {
+            const votes = readJSON('coop_votes');
+            const registry = readJSON('coop_eligible_voters');
+            const candidates = readJSON('coop_candidates');
+
+            const votedCount = registry.filter(v => v.hasVoted).length;
+
+            let tally = {};
+            candidates.forEach(c => { tally[c.number] = 0; });
+            let noVoteCount = 0;
+
+            votes.forEach(vote => {
+                if (vote === 'no-vote') {
+                    noVoteCount++;
+                } else if (tally.hasOwnProperty(vote)) {
+                    tally[vote]++;
+                }
+            });
+
+            const totalBallots = votes.length;
+
+            document.getElementById('stat-total-eligible').innerText = registry.length;
+            document.getElementById('stat-total-voters').innerText = votedCount;
+            document.getElementById('stat-total-ballots').innerText = totalBallots;
+            document.getElementById('stat-novote-count').innerText = noVoteCount;
+
+            const tableBody = document.getElementById('results-table-body');
+            tableBody.innerHTML = candidates.map(c => {
+                const score = tally[c.number] || 0;
+                const percentage = totalBallots > 0 ? ((score / totalBallots) * 100).toFixed(1) : 0;
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 text-center font-bold text-coop-800">${c.number}</td>
+                        <td class="p-3 font-medium text-slate-800">
+                            <div>${c.name}</div>
+                            <span class="text-xs text-slate-400">${c.org}</span>
+                        </td>
+                        <td class="p-3 text-right font-extrabold text-coop-700">${score.toLocaleString()} คะแนน</td>
+                        <td class="p-3 text-right text-slate-500 font-semibold">${percentage}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tableBody.innerHTML += `
+                <tr class="bg-slate-50 text-slate-600 font-medium">
+                    <td class="p-3 text-center"><i class="fa-solid fa-ban text-slate-400"></i></td>
+                    <td class="p-3">ไม่ประสงค์ลงคะแนน (Vote No)</td>
+                    <td class="p-3 text-right font-bold">${noVoteCount.toLocaleString()} คะแนน</td>
+                    <td class="p-3 text-right font-semibold">${totalBallots > 0 ? ((noVoteCount / totalBallots) * 100).toFixed(1) : 0}%</td>
+                </tr>
+            `;
+
+            renderResultsChart(candidates, tally, noVoteCount);
+        }
+
+        function renderResultsChart(candidates, tally, noVoteCount) {
+            const canvas = document.getElementById('resultsChart');
+            if (!canvas) return;
+
+            const labels = candidates.map(c => `เบอร์ ${c.number}: ${c.name.split(' ')[1] || c.name}`);
+            labels.push("ไม่ประสงค์ลงคะแนน");
+
+            const dataValues = candidates.map(c => tally[c.number] || 0);
+            dataValues.push(noVoteCount);
+
+            const backgroundColors = candidates.map((_, i) => ['#16a34a', '#15803d', '#14532d', '#047857'][i % 4]);
+            backgroundColors.push('#64748b');
+
+            // กรณีไม่มี Chart.js หรือเปิดแบบออฟไลน์
+            if (typeof Chart === 'undefined') {
+                const wrapper = document.getElementById('chart-wrapper');
+                const maxVal = Math.max(...dataValues, 1);
+                wrapper.innerHTML = `
+                    <div class="w-full space-y-3 px-4">
+                        ${labels.map((lbl, idx) => `
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span>${lbl}</span>
+                                    <span>${dataValues[idx]} คะแนน</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-3">
+                                    <div class="h-3 rounded-full" style="width: ${(dataValues[idx] / maxVal) * 100}%; background-color: ${backgroundColors[idx]};"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (resultsChartInstance) resultsChartInstance.destroy();
+
+            try {
+                resultsChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'คะแนนเสียง',
+                            data: dataValues,
+                            backgroundColor: backgroundColors,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            } catch (err) {
+                console.error("Chart error:", err);
+            }
+        }
+
+        // ==================== ADMIN FUNCTIONS ====================
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const stored = getAdminPassword();
+            const passInput = document.getElementById('admin-pass').value.trim();
+            if (passInput === stored) {
+                isAdminLoggedIn = true;
+                SS.setItem('coop_admin_authenticated', 'true');
+                document.getElementById('admin-login-box').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                document.getElementById('admin-pass').value = '';
+                showNotification("เข้าสู่ระบบสำเร็จ", "ยินดีต้อนรับเข้าสู่แผงควบคุมผู้ดูแลระบบ", "success");
+                loadAdminTiming();
+                loadAdminCandidates();
+                loadAdminVoterRegistry();
+            } else {
+                showNotification("รหัสผ่านไม่ถูกต้อง", "รหัสผ่านเริ่มต้นคือ admin (หรือกดปุ่มลืมรหัสผ่านด้านล่าง)", "error");
+            }
+        }
+
+        function openResetPasswordModal() {
+            document.getElementById('reset-pass-modal').classList.remove('hidden');
+            document.getElementById('reset-pass-form').reset();
+            setTimeout(() => {
+                const el = document.getElementById('reset-verify-curr-pass');
+                if (el) el.focus();
+            }, 50);
+        }
+
+        function closeResetPasswordModal() {
+            document.getElementById('reset-pass-modal').classList.add('hidden');
+        }
+
+        function handleSecureResetPassword(e) {
+            e.preventDefault();
+            const inputPass = document.getElementById('reset-verify-curr-pass').value.trim();
+            const storedPass = getAdminPassword();
+
+            // ตรวจสอบรหัสผ่านเดิมที่ตั้งไว้
+            if (inputPass !== storedPass) {
+                showNotification("รหัสผ่านไม่ถูกต้อง!", "รหัสผ่านเดิมไม่ถูกต้อง เพื่อความปลอดภัยจึงไม่อนุญาตให้รีเซ็ตรหัสผ่าน", "error");
+                return;
+            }
+
+            // รหัสผ่านเดิมถูกต้อง ดำเนินการรีเซ็ตกลับเป็น admin
+            LS.setItem(ADMIN_PASS_KEY, DEFAULT_ADMIN_PASS);
+            document.getElementById('admin-pass').value = DEFAULT_ADMIN_PASS;
+            closeResetPasswordModal();
+            showNotification("รีเซ็ตรหัสผ่านสำเร็จ", "ยืนยันรหัสเดิมถูกต้อง รหัสผ่านผู้ดูแลระบบถูกรีเซ็ตกลับเป็น: admin เรียบร้อยแล้ว", "success");
+        }
+
+        function adminLogout() {
+            isAdminLoggedIn = false;
+            SS.removeItem('coop_admin_authenticated');
+            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('admin-login-box').classList.remove('hidden');
+            document.getElementById('admin-pass').value = '';
+            showNotification("ออกจากระบบ", "ออกจากระบบผู้ดูแลระบบเรียบร้อย", "info");
+        }
+
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(`${inputId}-eye`);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function openChangePasswordModal() {
+            document.getElementById('change-pass-modal').classList.remove('hidden');
+            document.getElementById('change-pass-form').reset();
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('change-pass-modal').classList.add('hidden');
+        }
+
+        function saveCustomAdminPassword(e) {
+            e.preventDefault();
+            const currPass = document.getElementById('curr-admin-pass').value.trim();
+            const newPass = document.getElementById('new-admin-pass').value.trim();
+            const confirmPass = document.getElementById('confirm-admin-pass').value.trim();
+
+            const storedPass = getAdminPassword();
+
+            if (newPass.length < 4) {
+                showNotification("รหัสผ่านสั้นเกินไป", "รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร", "error");
+                return;
+            }
+
+            if (currPass !== storedPass) {
+                showNotification("รหัสผ่านเดิมไม่ถูกต้อง", "กรุณาตรวจสอบรหัสผ่านเดิมอีกครั้ง", "error");
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showNotification("รหัสผ่านใหม่ไม่ตรงกัน", "กรุณายืนยันรหัสผ่านใหม่ให้ตรงกัน", "error");
+                return;
+            }
+
+            LS.setItem(ADMIN_PASS_KEY, newPass);
+            closeChangePasswordModal();
+            showNotification("เปลี่ยนรหัสผ่านสำเร็จ", "บันทึกรหัสผ่านผู้ดูแลระบบใหม่เรียบร้อยแล้ว", "success");
+        }
+
+        // Admin Voter Registry Management
+        function loadAdminVoterRegistry() {
+            const tableBody = document.getElementById('admin-voter-registry-table');
+            const registry = readJSON('coop_eligible_voters');
+
+            if (registry.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">ยังไม่มีรายชื่อผู้มีสิทธิ์เลือกตั้งในระบบ (กดปุ่ม "โหลดรายชื่อตัวอย่าง" หรือ "เพิ่มผู้มีสิทธิ์")</td></tr>`;
+                return;
+            }
+
+            renderVoterTableRows(registry);
+        }
+
+        function renderVoterTableRows(votersList) {
+            const tableBody = document.getElementById('admin-voter-registry-table');
+            tableBody.innerHTML = votersList.map(v => {
+                const statusBadge = v.hasVoted 
+                    ? `<span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full"><i class="fa-solid fa-circle-check mr-1"></i>ลงคะแนนแล้ว</span>`
+                    : `<span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full"><i class="fa-solid fa-clock mr-1"></i>ยังไม่ลงคะแนน</span>`;
+                
+                const timeText = v.votedAt ? new Date(v.votedAt).toLocaleString('th-TH') : '-';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 font-bold text-slate-800">${v.memberId}</td>
+                        <td class="p-3 font-medium text-slate-800">${v.name}</td>
+                        <td class="p-3 text-slate-500">${v.org}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                        <td class="p-3 text-slate-500 text-xs">${timeText}</td>
+                        <td class="p-3 text-right">
+                            <button onclick="deleteEligibleVoter('${v.memberId}')" class="text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition" title="ลบรายชื่อ"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterVoterRegistryTable() {
+            const query = document.getElementById('voter-search-input').value.toLowerCase();
+            const registry = readJSON('coop_eligible_voters');
+            const filtered = registry.filter(v => 
+                v.memberId.toLowerCase().includes(query) ||
+                v.name.toLowerCase().includes(query) ||
+                v.org.toLowerCase().includes(query)
+            );
+            renderVoterTableRows(filtered);
+        }
+
+        function openVoterModal() {
+            document.getElementById('voter-modal').classList.remove('hidden');
+            document.getElementById('voter-form').reset();
+        }
+
+        function closeVoterModal() {
+            document.getElementById('voter-modal').classList.add('hidden');
+        }
+
+        function saveEligibleVoter(e) {
+            e.preventDefault();
+            const memberId = document.getElementById('add-voter-id').value.trim();
+            const name = document.getElementById('add-voter-name').value.trim();
+            const org = document.getElementById('add-voter-org').value.trim();
+
+            let registry = readJSON('coop_eligible_voters');
+            if (registry.some(v => v.memberId === memberId)) {
+                showNotification("เลขสมาชิกซ้ำ", "เลขประจำตัวสมาชิกนี้มีอยู่ในระบบแล้ว", "error");
+                return;
+            }
+
+            registry.push({ memberId, name, org, hasVoted: false, votedAt: null });
+            LS.setItem('coop_eligible_voters', JSON.stringify(registry));
+            closeVoterModal();
+            loadAdminVoterRegistry();
+            renderQuickVoterButtons();
+            showNotification("สำเร็จ", `เพิ่มคุณ${name} ในรายชื่อผู้มีสิทธิ์แล้ว`, "success");
+        }
+
+        function deleteEligibleVoter(memberId) {
+            if (confirm(`ต้องการลบเลขสมาชิก ${memberId} ออกจากบัญชีผู้มีสิทธิ์หรือไม่?`)) {
+                let registry = readJSON('coop_eligible_voters');
+                registry = registry.filter(v => v.memberId !== memberId);
+                LS.setItem('coop_eligible_voters', JSON.stringify(registry));
+                loadAdminVoterRegistry();
+                renderQuickVoterButtons();
+                showNotification("ลบสำเร็จ", "ลบรายชื่อผู้มีสิทธิ์เรียบร้อย", "info");
+            }
+        }
+
+        function loadDemoEligibleVoters() {
+            LS.setItem('coop_eligible_voters', JSON.stringify(DEFAULT_ELIGIBLE_VOTERS));
+            loadAdminVoterRegistry();
+            renderQuickVoterButtons();
+            showNotification("นำเข้าสำเร็จ", "โหลดรายชื่อผู้มีสิทธิ์ตัวอย่าง 5 รายการเรียบร้อย", "success");
+        }
+
+        function resetAllVotersToNotVoted() {
+            let registry = readJSON('coop_eligible_voters');
+            registry = registry.map(v => ({ ...v, hasVoted: false, votedAt: null }));
+            LS.setItem('coop_eligible_voters', JSON.stringify(registry));
+            loadAdminVoterRegistry();
+            renderQuickVoterButtons();
+            showNotification("สำเร็จ", "รีเซ็ตสถานะสมาชิกทุกคนให้สามารถลงคะแนนได้อีกครั้ง", "success");
+        }
+
+        // ==================== EXCEL / CSV IMPORT FUNCTIONS ====================
+        let parsedImportVoters = [];
+
+        function openImportModal() {
+            document.getElementById('import-voters-modal').classList.remove('hidden');
+            resetImportForm();
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-voters-modal').classList.add('hidden');
+            resetImportForm();
+        }
+
+        function resetImportForm() {
+            parsedImportVoters = [];
+            const fileInput = document.getElementById('voter-file-input');
+            if (fileInput) fileInput.value = '';
+            document.getElementById('upload-label-main').innerText = 'คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่';
+            document.getElementById('upload-label-sub').innerText = 'รองรับไฟล์ Excel (.xlsx, .xls) หรือ CSV (.csv)';
+            document.getElementById('import-preview-area').classList.add('hidden');
+            document.getElementById('btn-submit-import').disabled = true;
+        }
+
+        function downloadVoterTemplate() {
+            // สร้างไฟล์ CSV ตัวอย่าง พร้อม UTF-8 BOM (\uFEFF) เพื่อให้เปิดใน Excel ภาษาไทยได้ไม่เพี้ยน
+            const csvContent = "\uFEFFเลขประจำตัวสมาชิก,ชื่อ-นามสกุล,สังกัด/โรงเรียน\n10001,นายสมชาย ใจดี,โรงเรียนบ้านวังชมภู\n10002,นางสาวมณี รัตนะ,โรงเรียนบ้านยาวี-ห้วยโป่ง\n10003,นายวิทยา บุญมี,โรงเรียนบ้านเฉียงพ้อง\n10004,นางสมศรี สุขสรรค์,โรงเรียนบ้านนายม\n10005,นายอาทิตย์ แสงทอง,โรงเรียนบ้านวังชมภู\n";
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "template_eligible_voters.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showNotification("ดาวน์โหลดสำเร็จ", "ดาวน์โหลดเทมเพลตตัวอย่างเรียบร้อยแล้ว", "success");
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            processUploadedFile(files[0]);
+        }
+
+        function processUploadedFile(file) {
+            const fileName = file.name.toLowerCase();
+            document.getElementById('upload-label-main').innerText = file.name;
+            document.getElementById('upload-label-sub').innerText = `ขนาดไฟล์: ${(file.size / 1024).toFixed(1)} KB`;
+
+            const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+
+            if (isExcel && typeof XLSX !== 'undefined') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        handleParsedRows(rows);
+                    } catch (err) {
+                        console.error(err);
+                        showNotification("อ่านไฟล์ Excel ผิดพลาด", "ไม่สามารถอ่านไฟล์ได้ กรุณาลองบันทึกเป็น .csv แล้วนำเข้าใหม่", "error");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                // ไฟล์ CSV หรือข้อความ
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const text = e.target.result;
+                        const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+                        const rows = lines.map(line => {
+                            const delimiter = line.includes('\t') ? '\t' : (line.includes(';') ? ';' : ',');
+                            return line.split(delimiter).map(cell => cell.replace(/^["']|["']$/g, '').trim());
+                        });
+                        handleParsedRows(rows);
+                    } catch (err) {
+                        console.error(err);
+                        showNotification("อ่านไฟล์ CSV ผิดพลาด", "รูปแบบไฟล์ไม่ถูกต้อง", "error");
+                    }
+                };
+                reader.readAsText(file, 'utf-8');
+            }
+        }
+
+        function handleParsedRows(rows) {
+            if (!rows || rows.length === 0) {
+                showNotification("ไฟล์ว่างเปล่า", "ไม่พบข้อมูลในไฟล์ที่เลือก", "error");
+                return;
+            }
+
+            // ตรวจสอบแถวแรกว่าเป็น Header หรือไม่
+            let startIndex = 0;
+            const firstRowStr = (rows[0] || []).join(' ').toLowerCase();
+            if (firstRowStr.includes('เลข') || firstRowStr.includes('ชื่อ') || firstRowStr.includes('id') || firstRowStr.includes('name') || firstRowStr.includes('สมาชิก') || firstRowStr.includes('member')) {
+                startIndex = 1;
+            }
+
+            const voters = [];
+            const seenIds = new Set();
+
+            for (let i = startIndex; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+                const memberId = String(row[0] || '').trim();
+                const name = String(row[1] || '').trim();
+                const org = String(row[2] || '').trim() || 'กลุ่มโรงเรียนวังชมภู';
+
+                if (memberId && name && !seenIds.has(memberId)) {
+                    seenIds.add(memberId);
+                    voters.push({
+                        memberId: memberId,
+                        name: name,
+                        org: org,
+                        hasVoted: false,
+                        votedAt: null
+                    });
+                }
+            }
+
+            if (voters.length === 0) {
+                showNotification("ไม่พบข้อมูลผู้มีสิทธิ์", "กรุณาตรวจสอบว่ามีคอลัมน์ เลขประจำตัวสมาชิก และชื่อ-นามสกุล", "error");
+                return;
+            }
+
+            parsedImportVoters = voters;
+            displayImportPreview(voters);
+        }
+
+        function displayImportPreview(voters) {
+            const previewArea = document.getElementById('import-preview-area');
+            const previewBody = document.getElementById('import-preview-body');
+            const badge = document.getElementById('import-count-badge');
+            const submitBtn = document.getElementById('btn-submit-import');
+
+            badge.innerText = `พบข้อมูลผู้มีสิทธิ์ทั้งหมด ${voters.length.toLocaleString()} รายการ`;
+
+            // แสดงตัวอย่าง 5 รายการแรก
+            const sample = voters.slice(0, 5);
+            previewBody.innerHTML = sample.map(v => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-2 font-mono font-bold text-slate-800">${v.memberId}</td>
+                    <td class="p-2 font-medium text-slate-800">${v.name}</td>
+                    <td class="p-2 text-slate-500">${v.org}</td>
+                </tr>
+            `).join('');
+
+            if (voters.length > 5) {
+                previewBody.innerHTML += `
+                    <tr class="bg-slate-50 text-slate-500 text-center font-medium">
+                        <td colspan="3" class="p-2 text-[11px]">... และอีก ${(voters.length - 5).toLocaleString()} รายการ ...</td>
+                    </tr>
+                `;
+            }
+
+            previewArea.classList.remove('hidden');
+            submitBtn.disabled = false;
+        }
+
+        function confirmImportVoters() {
+            if (!parsedImportVoters || parsedImportVoters.length === 0) return;
+
+            const mode = document.querySelector('input[name="import-mode"]:checked').value;
+            let currentRegistry = readJSON('coop_eligible_voters');
+            let addedCount = 0;
+            let skippedCount = 0;
+
+            if (mode === 'replace') {
+                currentRegistry = parsedImportVoters;
+                addedCount = parsedImportVoters.length;
+            } else {
+                // append mode
+                const existingIdSet = new Set(currentRegistry.map(v => String(v.memberId).toLowerCase()));
+                parsedImportVoters.forEach(v => {
+                    if (!existingIdSet.has(String(v.memberId).toLowerCase())) {
+                        currentRegistry.push(v);
+                        existingIdSet.add(String(v.memberId).toLowerCase());
+                        addedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                });
+            }
+
+            LS.setItem('coop_eligible_voters', JSON.stringify(currentRegistry));
+            closeImportModal();
+            loadAdminVoterRegistry();
+            renderQuickVoterButtons();
+            loadPublicResults();
+
+            let msg = `นำเข้าสำเร็จ ${addedCount.toLocaleString()} รายการ`;
+            if (skippedCount > 0) msg += ` (ข้ามเลขซ้ำ ${skippedCount} รายการ)`;
+            showNotification("นำเข้ารายชื่อสำเร็จ!", msg, "success");
+        }
+
+        // Timing & Candidate Controls
+        function loadAdminTiming() {
+            const timing = readJSON('coop_timing');
+            document.getElementById('config-start-time').value = timing.start;
+            document.getElementById('config-end-time').value = timing.end;
+        }
+
+        function saveElectionTiming() {
+            const start = document.getElementById('config-start-time').value;
+            const end = document.getElementById('config-end-time').value;
+            let timing = readJSON('coop_timing');
+            timing.start = start;
+            timing.end = end;
+            timing.forcedState = null;
+            LS.setItem('coop_timing', JSON.stringify(timing));
+            showNotification("บันทึกสำเร็จ", "ปรับปรุงเวลาเปิด-ปิดเรียบร้อย", "success");
+            checkSystemStatus();
+        }
+
+        function forceOpenSystem() {
+            let timing = readJSON('coop_timing');
+            timing.forcedState = 'open';
+            LS.setItem('coop_timing', JSON.stringify(timing));
+            showNotification("เปิดระบบสำเร็จ", "บังคับเปิดระบบรับลงคะแนนทันทีเรียบร้อย", "success");
+            checkSystemStatus();
+        }
+
+        function forceCloseSystem() {
+            let timing = readJSON('coop_timing');
+            timing.forcedState = 'closed';
+            LS.setItem('coop_timing', JSON.stringify(timing));
+            showNotification("ปิดระบบสำเร็จ", "บังคับปิดระบบลงคะแนนเรียบร้อย", "info");
+            checkSystemStatus();
+        }
+
+        function loadAdminCandidates() {
+            const tableBody = document.getElementById('admin-candidates-table');
+            const candidates = readJSON('coop_candidates');
+
+            if (candidates.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูลผู้สมัคร</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = candidates.map(c => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 text-center">
+                        <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-coop-100 text-coop-800 font-extrabold text-base border border-coop-300">
+                            ${c.number}
+                        </span>
+                    </td>
+                    <td class="p-3 font-semibold text-slate-800">${c.name}</td>
+                    <td class="p-3 text-slate-500">${c.org}</td>
+                    <td class="p-3 text-right space-x-2">
+                        <button onclick="editCandidate(${c.id})" class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteCandidate(${c.id})" class="text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openCandidateModal(id = null) {
+            document.getElementById('candidate-modal').classList.remove('hidden');
+            const form = document.getElementById('candidate-form');
+            form.reset();
+            document.getElementById('edit-candidate-id').value = "";
+            document.getElementById('candidate-modal-title').innerText = "เพิ่มผู้สมัครใหม่";
+
+            if (id) {
+                const candidates = readJSON('coop_candidates');
+                const cand = candidates.find(c => c.id === id);
+                if (cand) {
+                    document.getElementById('edit-candidate-id').value = cand.id;
+                    document.getElementById('cand-number').value = cand.number;
+                    document.getElementById('cand-name').value = cand.name;
+                    document.getElementById('cand-org').value = cand.org;
+                    document.getElementById('candidate-modal-title').innerText = "แก้ไขข้อมูลผู้สมัคร";
+                }
+            }
+        }
+
+        function closeCandidateModal() {
+            document.getElementById('candidate-modal').classList.add('hidden');
+        }
+
+        function saveCandidate(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-candidate-id').value;
+            const number = parseInt(document.getElementById('cand-number').value);
+            const name = document.getElementById('cand-name').value.trim();
+            const org = document.getElementById('cand-org').value.trim();
+
+            let candidates = readJSON('coop_candidates');
+
+            if (id) {
+                candidates = candidates.map(c => c.id == id ? { id: parseInt(id), number, name, org } : c);
+            } else {
+                const newId = candidates.length > 0 ? Math.max(...candidates.map(c => c.id)) + 1 : 1;
+                candidates.push({ id: newId, number, name, org });
+            }
+
+            LS.setItem('coop_candidates', JSON.stringify(candidates));
+            closeCandidateModal();
+            loadAdminCandidates();
+            loadCandidatesForVoter();
+            showNotification("สำเร็จ", "บันทึกข้อมูลผู้สมัครเรียบร้อย", "success");
+        }
+
+        function editCandidate(id) { openCandidateModal(id); }
+
+        function deleteCandidate(id) {
+            if (confirm("ต้องการลบผู้สมัครท่านนี้หรือไม่?")) {
+                let candidates = readJSON('coop_candidates');
+                candidates = candidates.filter(c => c.id !== id);
+                LS.setItem('coop_candidates', JSON.stringify(candidates));
+                loadAdminCandidates();
+                loadCandidatesForVoter();
+                showNotification("ลบสำเร็จ", "ลบผู้สมัครออกจากระบบแล้ว", "info");
+            }
+        }
+
+        function resetVotesToZero() {
+            const votes = readJSON('coop_votes');
+            const total = votes.length;
+            if (confirm(`ยืนยันการรีเซ็ตผลคะแนนทั้งหมดหรือไม่?\n\n- คะแนนเสียงทั้งหมด (${total} คะแนน) จะถูกล้างกลับเป็น 0\n- สมาชิกทุกคนจะสามารถลงคะแนนได้ใหม่อีกครั้ง\n- รายชื่อผู้มีสิทธิ์และรายชื่อผู้สมัครจะไม่ถูกลบ`)) {
+                // 1. ล้างคะแนนทั้งหมดให้เหลือ 0
+                LS.setItem('coop_votes', JSON.stringify([]));
+
+                // 2. คืนสถานะการลงคะแนนของสมาชิกทุกคนให้เป็นยังไม่ลงคะแนน
+                let registry = readJSON('coop_eligible_voters');
+                registry = registry.map(v => ({ ...v, hasVoted: false, votedAt: null }));
+                LS.setItem('coop_eligible_voters', JSON.stringify(registry));
+
+                // 3. ล้างสถานะผู้ลงคะแนนปัจจุบัน
+                SS.removeItem('coop_current_voter');
+                currentVoter = null;
+
+                // 4. อัปเดตผลคะแนนและตารางรายชื่อทันที
+                loadPublicResults();
+                loadAdminVoterRegistry();
+                renderQuickVoterButtons();
+
+                showNotification("รีเซ็ตคะแนนสำเร็จ!", `ล้างคะแนนทั้งหมด ${total} คะแนน กลับเป็น 0 เรียบร้อยแล้ว`, "success");
+            }
+        }
+
+        function resetAllData() {
+            if (confirm("คำเตือน! การรีเซ็ตจะล้างคะแนนทั้งหมด คืนสถานะผู้มีสิทธิ์ให้ยังไม่ลงคะแนน และเปิดระบบพร้อมใช้งานทันที ต้องการดำเนินการหรือไม่?")) {
+                LS.setItem('coop_votes', JSON.stringify([]));
+                
+                let registry = readJSON('coop_eligible_voters');
+                registry = registry.map(v => ({ ...v, hasVoted: false, votedAt: null }));
+                LS.setItem('coop_eligible_voters', JSON.stringify(registry));
+
+                // รีเซ็ตเวลาให้เปิดใช้งาน
+                let timing = readJSON('coop_timing');
+                const now = new Date();
+                timing.start = toLocalInputValue(new Date(now.getTime() - 60 * 60 * 1000));
+                timing.end = toLocalInputValue(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
+                timing.forcedState = 'open';
+                LS.setItem('coop_timing', JSON.stringify(timing));
+
+                SS.removeItem('coop_current_voter');
+                currentVoter = null;
+                showNotification("รีเซ็ตระบบแล้ว", "ล้างข้อมูลคะแนนและเปิดระบบพร้อมใช้งานแล้ว", "success");
+                setTimeout(() => window.location.reload(), 800);
+            }
+        }
+
+        function showNotification(title, message, type = "success") {
+            const box = document.getElementById('notification-box');
+            document.getElementById('notif-title').innerText = title;
+            document.getElementById('notif-message').innerText = message;
+            const iconEl = document.getElementById('notif-icon');
+
+            if (type === "success") {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600"></i>';
+            } else if (type === "error") {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-exclamation text-rose-600"></i>';
+            } else {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-info text-blue-600"></i>';
+            }
+
+            box.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => { box.classList.add('translate-y-24', 'opacity-0'); }, 4000);
+        }
+    </script>
+</body>
+</html>
