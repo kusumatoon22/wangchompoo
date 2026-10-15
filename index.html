@@ -388,7 +388,7 @@
                                 <span>นำเข้าไฟล์รายชื่อ (Excel / CSV)</span>
                             </button>
                             <button onclick="loadDemoEligibleVoters()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-semibold px-3 py-2 rounded-xl transition">
-                                <i class="fa-solid fa-file-import mr-1"></i> โหลดรายชื่อตัวอย่าง
+                                <i class="fa-solid fa-file-import mr-1"></i> โหลดรายชื่อ 17 คนจากเอกสาร
                             </button>
                             <button onclick="openVoterModal()" class="bg-coop-600 hover:bg-coop-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow transition">
                                 <i class="fa-solid fa-user-plus mr-1"></i> เพิ่มผู้มีสิทธิ์
@@ -490,6 +490,75 @@
                                 <span>ล้างคะแนนและรีเซ็ตระบบทั้งหมด</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 5. Data Transfer & Multi-Device Synchronization -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                                <i class="fa-solid fa-cloud-arrow-up text-coop-600 mr-2"></i> ถ่ายโอนข้อมูลและย้ายไปใช้เครื่องอื่น (Multi-Device & Backup)
+                            </h3>
+                            <p class="text-xs text-slate-500">แก้ปัญหาข้อมูลไม่ตามไปเมื่อเปิดในเบราว์เซอร์อื่น หรือเครื่องคอมพิวเตอร์อื่น</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- กล่อง 1: บันทึกข้อมูลฝังลงไฟล์ HTML ตัวใหม่ (นำไปเปิดเครื่องอื่นได้ทันที) -->
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2 text-emerald-900 font-bold mb-1.5">
+                                    <i class="fa-solid fa-file-code text-lg text-emerald-600"></i>
+                                    <h4 class="text-base">ดาวน์โหลดไฟล์ HTML พร้อมข้อมูลปัจจุบัน</h4>
+                                </div>
+                                <p class="text-xs text-emerald-800 leading-relaxed mb-4">
+                                    ระบบจะนำรายชื่อผู้มีสิทธิ์ที่นำเข้าไว้, ผู้สมัคร และรหัสผ่านปัจจุบัน <b>เขียนฝังลงในไฟล์ HTML ให้โดยตรง</b> <br>
+                                    <span class="font-semibold text-emerald-700">✓ นำไฟล์ใหม่นี้ไปเปิดเครื่องไหน เบราว์เซอร์ไหน ข้อมูลจะติดไปด้วยทันที 100%</span>
+                                </p>
+                            </div>
+                            <button onclick="exportConfiguredHtml()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-download"></i>
+                                <span>💾 บันทึกและดาวน์โหลดไฟล์ HTML ตัวใหม่</span>
+                            </button>
+                        </div>
+
+                        <!-- กล่อง 2: สำรองและกู้คืนข้อมูลด้วยไฟล์ JSON -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2 text-blue-900 font-bold mb-1.5">
+                                    <i class="fa-solid fa-floppy-disk text-lg text-blue-600"></i>
+                                    <h4 class="text-base">ส่งออก / นำเข้าไฟล์สำรองข้อมูล (.json)</h4>
+                                </div>
+                                <p class="text-xs text-blue-800 leading-relaxed mb-4">
+                                    ส่งออกไฟล์ข้อมูลสำรองเพื่อเก็บไว้ หรือนำไฟล์ไปกู้คืนในเครื่องอื่น/เบราว์เซอร์อื่นได้ทันทีใน 1 วินาที
+                                </p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="exportStateBackup()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 rounded-xl shadow transition flex items-center justify-center space-x-1.5">
+                                    <i class="fa-solid fa-file-export"></i>
+                                    <span>📥 ส่งออกไฟล์สำรอง (.json)</span>
+                                </button>
+                                <button onclick="document.getElementById('restore-json-input').click()" class="flex-1 bg-white hover:bg-blue-100 text-blue-700 border border-blue-300 text-xs font-semibold py-2.5 rounded-xl shadow-sm transition flex items-center justify-center space-x-1.5">
+                                    <i class="fa-solid fa-file-import"></i>
+                                    <span>📤 นำเข้าไฟล์สำรอง (.json)</span>
+                                </button>
+                                <input type="file" id="restore-json-input" accept=".json" onchange="handleRestoreJson(event)" class="hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- กล่องคำแนะนำสำหรับกรณีใช้หลายเครื่องเป็นคูหาลงคะแนน -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1.5">
+                        <div class="font-bold text-slate-800 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-circle-info text-coop-600"></i>
+                            <span>คำแนะนำเกี่ยวกับการใช้งาน:</span>
+                        </div>
+                        <ul class="list-disc list-inside space-y-1 pl-2 text-slate-600">
+                            <li><b>ใช้งานเครื่องเดียว (Single Station):</b> ใช้เครื่องคอมพิวเตอร์ 1 เครื่องเป็นคูหาลงคะแนน สมาชิกเดินมาลงคะแนนทีละคน คะแนนจะบันทึกรวมในเครื่องนั้นตลอดไป</li>
+                            <li><b>ย้ายไปเปิดเครื่องอื่น (Standalone / Offline):</b> กดปุ่ม <b>"ดาวน์โหลดไฟล์ HTML พร้อมข้อมูลปัจจุบัน"</b> ด้านบน แล้วนำไฟล์ใหม่ไปเปิดเครื่องอื่นได้ทันที</li>
+                            <li><b>ใช้งานหลายเครื่องพร้อมกัน (Multiple Voting Booths):</b> หากมีคูหาลงคะแนน 2-3 เครื่อง และต้องการให้คะแนนวิ่งมารวมกันที่จอหลักแบบ Real-time โปรดแจ้งผู้พัฒนาเพื่อเปิดระบบเชื่อมต่อ <b>Cloud Database (เช่น Firebase)</b> หรือ <b>Local Web Server ในวง Wi-Fi โรงเรียน</b></li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -764,13 +833,25 @@
             { id: 4, number: 4, name: "นางสาวกนกพร นายมพัฒนา", org: "โรงเรียนบ้านนายม" }
         ];
 
-        // Demo Eligible Voters Registry - Wang Chomphu School Group
+        // Eligible Voters Registry - 17 Members from Official List (ร.ร.อบจ. / วังชมภู)
         const DEFAULT_ELIGIBLE_VOTERS = [
-            { memberId: "10001", name: "นายสมชาย ใจดี", org: "โรงเรียนบ้านวังชมภู", hasVoted: false, votedAt: null },
-            { memberId: "10002", name: "นางสาวมณี รัตนะ", org: "โรงเรียนบ้านยาวี-ห้วยโป่ง", hasVoted: false, votedAt: null },
-            { memberId: "10003", name: "นายวิทยา บุญมี", org: "โรงเรียนบ้านเฉียงพ้อง", hasVoted: false, votedAt: null },
-            { memberId: "10004", name: "นางสมศรี สุขสรรค์", org: "โรงเรียนบ้านนายม", hasVoted: false, votedAt: null },
-            { memberId: "10005", name: "นายอาทิตย์ แสงทอง", org: "โรงเรียนบ้านวังชมภู", hasVoted: false, votedAt: null }
+            { memberId: "00164890", name: "นางสุทิน ดอกไม้", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00165760", name: "นางธิดา ปัญญาศุภโชติ", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00173490", name: "นางสาวสวิตตา ศรีเมือง", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00175550", name: "นางสาวชญานิษ คงศรีไพร", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00190410", name: "นายเอกชัย ปานนูน", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00198620", name: "นายวิทวัส ดวงภุมเมศ", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212306", name: "นางปณิชา ฤกษ์รัตนประทีป", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212307", name: "นายสมคะเน แสงจำปา", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212308", name: "นางสาวรวีวรรณ ช่งสกุลไพศาล", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212309", name: "นางสาวมณัญญา พรินทรากุล", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212310", name: "นางสาวจิราพร มากน้อย", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212311", name: "นายบัญชา อเนกะเวียง", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212312", name: "นางสาวแสงเดือน พิมพ์เสนา", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00212313", name: "นางสาวนริศรา สมัครณรงค์", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00213153", name: "นายอดิเรก น้อยบัว", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00213718", name: "นายทินกร พิมพ์สิงห์", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null },
+            { memberId: "00213960", name: "นางกรรณิการ์ นิธิศธนากุล", org: "โรงเรียนองค์การบริหารส่วนจังหวัด", hasVoted: false, votedAt: null }
         ];
 
         const ADMIN_PASS_KEY = 'wcp2569_admin_password';
@@ -842,6 +923,23 @@
         ensureStored('coop_eligible_voters', Array.isArray);
         ensureStored('coop_votes', Array.isArray);
         ensureStored('coop_timing', v => v && typeof v === 'object' && v.start && v.end);
+
+        // Auto Upgrade Data Version: หากเบราว์เซอร์นี้ยังค้างรายชื่อตัวอย่างเดิม (10001) ให้อัปเกรดเป็น 17 รายชื่อจริงอัตโนมัติ
+        const DATA_VERSION = 'wcp_v3_17voters';
+        (function checkAndUpgradeVotersData() {
+            try {
+                const currentDataVer = LS.getItem('coop_data_version');
+                if (currentDataVer !== DATA_VERSION) {
+                    let currentVoters = [];
+                    try { currentVoters = JSON.parse(LS.getItem('coop_eligible_voters')) || []; } catch(e){}
+                    const isOldDemo = currentVoters.some(v => v.memberId === '10001');
+                    if (isOldDemo || currentVoters.length === 0) {
+                        LS.setItem('coop_eligible_voters', JSON.stringify(DEFAULT_ELIGIBLE_VOTERS));
+                    }
+                    LS.setItem('coop_data_version', DATA_VERSION);
+                }
+            } catch(e) {}
+        })();
 
         let currentVoter = null;
         try { currentVoter = JSON.parse(SS.getItem('coop_current_voter')) || null; } catch (e) { currentVoter = null; }
@@ -1632,7 +1730,7 @@
             LS.setItem('coop_eligible_voters', JSON.stringify(DEFAULT_ELIGIBLE_VOTERS));
             loadAdminVoterRegistry();
             renderQuickVoterButtons();
-            showNotification("นำเข้าสำเร็จ", "โหลดรายชื่อผู้มีสิทธิ์ตัวอย่าง 5 รายการเรียบร้อย", "success");
+            showNotification("นำเข้าสำเร็จ", "โหลดรายชื่อผู้มีสิทธิ์วังชมภู (17 รายชื่อจากเอกสาร) เรียบร้อย", "success");
         }
 
         function resetAllVotersToNotVoted() {
@@ -2009,6 +2107,108 @@
                 showNotification("รีเซ็ตระบบแล้ว", "ล้างข้อมูลคะแนนและเปิดระบบพร้อมใช้งานแล้ว", "success");
                 setTimeout(() => window.location.reload(), 800);
             }
+        }
+
+        // Multi-Device & Data Portability Functions
+        async function exportConfiguredHtml() {
+            try {
+                let rawHtml = "";
+                try {
+                    const resp = await fetch(window.location.href);
+                    if (resp.ok) rawHtml = await resp.text();
+                } catch (e) {
+                    rawHtml = "";
+                }
+                if (!rawHtml || !rawHtml.includes('DEFAULT_ELIGIBLE_VOTERS')) {
+                    rawHtml = "<!DOCTYPE html>\n<html lang=\"th\">\n" + document.documentElement.outerHTML.replace(/^<html[^>]*>|<\/html>$/gi, '') + "\n</html>";
+                }
+
+                const currentCandidates = readJSON('coop_candidates');
+                const currentVoters = readJSON('coop_eligible_voters');
+                const currentAdminPass = getAdminPassword();
+
+                // แทนที่ DEFAULT_CANDIDATES
+                rawHtml = rawHtml.replace(/const DEFAULT_CANDIDATES\s*=\s*\[[\s\S]*?\];/, `const DEFAULT_CANDIDATES = ${JSON.stringify(currentCandidates, null, 4)};`);
+                // แทนที่ DEFAULT_ELIGIBLE_VOTERS
+                rawHtml = rawHtml.replace(/const DEFAULT_ELIGIBLE_VOTERS\s*=\s*\[[\s\S]*?\];/, `const DEFAULT_ELIGIBLE_VOTERS = ${JSON.stringify(currentVoters, null, 4)};`);
+                // แทนที่ DEFAULT_ADMIN_PASS
+                rawHtml = rawHtml.replace(/const DEFAULT_ADMIN_PASS\s*=\s*['"][^'"]*['"];/, `const DEFAULT_ADMIN_PASS = ${JSON.stringify(currentAdminPass)};`);
+
+                const blob = new Blob([rawHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "wangchomphu-election-2569.html";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showNotification("บันทึกสำเร็จ", "ดาวน์โหลดไฟล์ HTML พร้อมข้อมูลปัจจุบันเรียบร้อย สามารถนำไปเปิดเครื่องอื่นได้ทันที", "success");
+            } catch (err) {
+                console.error(err);
+                showNotification("เกิดข้อผิดพลาด", "ไม่สามารถดาวน์โหลดไฟล์ได้: " + err.message, "error");
+            }
+        }
+
+        function exportStateBackup() {
+            try {
+                const backup = {
+                    appName: "wangchomphu-election-2569",
+                    exportedAt: new Date().toISOString(),
+                    candidates: readJSON('coop_candidates'),
+                    eligibleVoters: readJSON('coop_eligible_voters'),
+                    votes: readJSON('coop_votes'),
+                    timing: readJSON('coop_timing'),
+                    adminPassword: getAdminPassword()
+                };
+                const jsonStr = JSON.stringify(backup, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const d = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                const dateStr = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+                a.download = `wangchomphu-backup-${dateStr}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showNotification("ส่งออกสำเร็จ", "ดาวน์โหลดไฟล์สำรองข้อมูล (.json) เรียบร้อยแล้ว", "success");
+            } catch (err) {
+                console.error(err);
+                showNotification("เกิดข้อผิดพลาด", "ไม่สามารถส่งออกข้อมูลได้: " + err.message, "error");
+            }
+        }
+
+        function handleRestoreJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    if (!data || (!data.eligibleVoters && !data.candidates)) {
+                        throw new Error("รูปแบบไฟล์สำรองไม่ถูกต้อง");
+                    }
+                    if (confirm("ต้องการนำเข้าข้อมูลสำรองนี้ใช่หรือไม่?\nข้อมูลทั้งหมดในเบราว์เซอร์นี้จะถูกแทนที่ด้วยข้อมูลจากไฟล์สำรอง")) {
+                        if (Array.isArray(data.candidates)) LS.setItem('coop_candidates', JSON.stringify(data.candidates));
+                        if (Array.isArray(data.eligibleVoters)) LS.setItem('coop_eligible_voters', JSON.stringify(data.eligibleVoters));
+                        if (Array.isArray(data.votes)) LS.setItem('coop_votes', JSON.stringify(data.votes));
+                        if (data.timing) LS.setItem('coop_timing', JSON.stringify(data.timing));
+                        if (data.adminPassword) LS.setItem(ADMIN_PASS_KEY, data.adminPassword);
+
+                        showNotification("กู้คืนข้อมูลสำเร็จ", "นำเข้าข้อมูลจากไฟล์สำรองเรียบร้อย กำลังรีเฟรชหน้าเว็บ...", "success");
+                        setTimeout(() => { window.location.reload(); }, 1200);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showNotification("เกิดข้อผิดพลาด", "ไม่สามารถอ่านไฟล์สำรองได้: " + err.message, "error");
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
         }
 
         function showNotification(title, message, type = "success") {
