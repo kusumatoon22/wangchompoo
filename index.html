@@ -85,7 +85,11 @@
                     <p id="status-desc" class="text-sm opacity-90">กรุณารอสักครู่</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-3">
+            <div class="flex flex-wrap items-center gap-2.5">
+                <div id="server-status-pill" class="text-xs px-3 py-1.5 rounded-lg border font-medium flex items-center space-x-1.5 bg-slate-100 text-slate-600 border-slate-200">
+                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <span>กำลังตรวจการเชื่อมต่อ...</span>
+                </div>
                 <div id="timer-display" class="font-mono text-sm bg-white px-3.5 py-1.5 rounded-lg shadow-inner border border-slate-200 text-slate-800 font-bold">
                     เวลาที่เหลือ: --:--:--
                 </div>
@@ -857,7 +861,94 @@
         const ADMIN_PASS_KEY = 'wcp2569_admin_password';
         const DEFAULT_ADMIN_PASS = 'admin';
 
-        // Safe Storage Helper
+        // Safe Storage Helper with Auto-Sync Hook
+        let isServerMode = false;
+        let lastServerHash = '';
+        let isSyncing = false;
+        let syncDebounceTimer = null;
+
+        function triggerSyncToServer() {
+            if (!isServerMode || isSyncing) return;
+            if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+            syncDebounceTimer = setTimeout(syncToServer, 100);
+        }
+
+        async function checkServerConnection() {
+            const pill = document.getElementById('server-status-pill');
+            try {
+                const resp = await fetch('/api/data', { cache: 'no-cache' });
+                if (resp.ok) {
+                    isServerMode = true;
+                    if (pill) {
+                        pill.className = "text-xs px-3 py-1.5 rounded-lg border font-medium flex items-center space-x-1.5 bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm";
+                        pill.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>🟢 ซิงค์เซิร์ฟเวอร์กลาง (ข้อมูลตรงกันทุกเครื่อง)</span>';
+                    }
+                    const serverData = await resp.json();
+                    applyServerData(serverData);
+                    return true;
+                }
+            } catch (e) {
+                isServerMode = false;
+                if (pill) {
+                    pill.className = "text-xs px-3 py-1.5 rounded-lg border font-medium flex items-center space-x-1.5 bg-amber-50 text-amber-800 border-amber-200 cursor-pointer";
+                    pill.title = "เปิดในโหมดออฟไลน์ หากต้องการให้หลายเครื่องซิงค์ข้อมูลเดียวกัน ให้ดับเบิ้ลคลิก 'เริ่มระบบเลือกตั้ง_start-server.bat'";
+                    pill.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>📁 โหมดเครื่องเดียว (ออฟไลน์)</span>';
+                }
+            }
+            return false;
+        }
+
+        function applyServerData(data) {
+            if (!data || typeof data !== 'object') return;
+            // หากเซิร์ฟเวอร์ยังไม่มีข้อมูล (เพิ่งเปิดครั้งแรก) ให้นำข้อมูลเริ่มต้นในเครื่องนี้อัปโหลดขึ้นเซิร์ฟเวอร์
+            if (!data.eligibleVoters && !data.candidates) {
+                syncToServer();
+                return;
+            }
+
+            const newHash = JSON.stringify(data);
+            if (newHash === lastServerHash) return; // ไม่มีการเปลี่ยนแปลง
+
+            isSyncing = true;
+            if (Array.isArray(data.candidates)) LS.setItem('coop_candidates', JSON.stringify(data.candidates));
+            if (Array.isArray(data.eligibleVoters)) LS.setItem('coop_eligible_voters', JSON.stringify(data.eligibleVoters));
+            if (Array.isArray(data.votes)) LS.setItem('coop_votes', JSON.stringify(data.votes));
+            if (data.timing) LS.setItem('coop_timing', JSON.stringify(data.timing));
+            if (data.adminPassword) LS.setItem(ADMIN_PASS_KEY, data.adminPassword);
+
+            lastServerHash = newHash;
+
+            // อัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่จากเครื่องอื่น
+            if (typeof loadPublicResults === 'function') loadPublicResults();
+            if (typeof loadCandidatesForVoter === 'function') loadCandidatesForVoter();
+            if (typeof loadAdminVoterRegistry === 'function') loadAdminVoterRegistry();
+            if (typeof loadAdminCandidates === 'function') loadAdminCandidates();
+            if (typeof renderQuickVoterButtons === 'function') renderQuickVoterButtons();
+            isSyncing = false;
+        }
+
+        async function syncToServer() {
+            if (!isServerMode || isSyncing) return;
+            try {
+                const payload = {
+                    updatedAt: new Date().toISOString(),
+                    candidates: readJSON('coop_candidates'),
+                    eligibleVoters: readJSON('coop_eligible_voters'),
+                    votes: readJSON('coop_votes'),
+                    timing: readJSON('coop_timing'),
+                    adminPassword: getAdminPassword()
+                };
+                lastServerHash = JSON.stringify(payload);
+                await fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) {
+                console.error("Sync error:", e);
+            }
+        }
+
         function makeSafeStorage(getNative) {
             let native = null;
             try {
@@ -869,7 +960,13 @@
             return {
                 persistent: !!native,
                 getItem(k) { try { return native ? native.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { return k in mem ? mem[k] : null; } },
-                setItem(k, v) { mem[k] = String(v); try { if (native) native.setItem(k, String(v)); } catch (e) {} },
+                setItem(k, v) { 
+                    mem[k] = String(v); 
+                    try { if (native) native.setItem(k, String(v)); } catch (e) {} 
+                    if (k.startsWith('coop_') || k === ADMIN_PASS_KEY) {
+                        triggerSyncToServer();
+                    }
+                },
                 removeItem(k) { delete mem[k]; try { if (native) native.removeItem(k); } catch (e) {} }
             };
         }
@@ -951,6 +1048,10 @@
             renderQuickVoterButtons();
             const isOpen = checkSystemStatus();
             setInterval(checkSystemStatus, 1000);
+
+            // ตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์กลาง และซิงค์ข้อมูลเรียลไทม์
+            checkServerConnection();
+            setInterval(checkServerConnection, 1500);
             
             if (currentVoter) {
                 if (isOpen) {
