@@ -609,11 +609,15 @@
                 <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
                 <span>คำเตือน: เมื่อกดยืนยันแล้วจะไม่สามารถแก้ไขหรือลงคะแนนซ้ำได้ ระบบจะบันทึกผลโดยไม่ระบุตัวตนของท่าน</span>
             </div>
+            <div id="vote-saving-msg" class="hidden bg-blue-50 border border-blue-200 p-3 rounded-xl text-xs text-blue-800 mb-4 text-center">
+                <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>
+                <span id="vote-saving-text">กำลังบันทึกคะแนนไปยังฐานข้อมูลกลาง กรุณาอย่าปิดหรือรีเฟรชหน้านี้</span>
+            </div>
             <div class="flex space-x-3">
-                <button onclick="closeVoteModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition">
+                <button id="vote-cancel-btn" onclick="closeVoteModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition disabled:opacity-50">
                     ยกเลิก
                 </button>
-                <button onclick="submitVote()" class="flex-1 bg-coop-600 hover:bg-coop-700 text-white font-medium py-2.5 rounded-xl shadow-lg shadow-coop-600/30 transition">
+                <button id="vote-confirm-btn" onclick="submitVote()" class="flex-1 bg-coop-600 hover:bg-coop-700 text-white font-medium py-2.5 rounded-xl shadow-lg shadow-coop-600/30 transition disabled:opacity-80">
                     ยืนยันการลงคะแนน
                 </button>
             </div>
@@ -905,8 +909,16 @@
             }
         };
 
-        async function cloudPost(body) {
-            const resp = await fetch(CLOUD_URL.trim(), { method: 'POST', body: JSON.stringify(body) });
+        async function cloudPost(body, timeoutMs) {
+            const opts = { method: 'POST', body: JSON.stringify(body) };
+            let timer = null;
+            if (timeoutMs && typeof AbortController !== 'undefined') {
+                const ctrl = new AbortController();
+                opts.signal = ctrl.signal;
+                timer = setTimeout(() => ctrl.abort(), timeoutMs);
+            }
+            let resp;
+            try { resp = await fetch(CLOUD_URL.trim(), opts); } finally { if (timer) clearTimeout(timer); }
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             return await resp.json();
         }
@@ -1451,6 +1463,7 @@
 
             currentVoter = voterRecord;
             SS.setItem('coop_current_voter', JSON.stringify(currentVoter));
+            if (CLOUD_ON) cloudPull(); // ปลุกเซิร์ฟเวอร์ไว้ล่วงหน้า ให้ตอนกดยืนยันบันทึกได้เร็วขึ้น
             showNotification("ยืนยันตัวตนสำเร็จ", `ยินดีต้อนรับ คุณ${voterRecord.name}`, "success");
             showVotingBooth();
         }
@@ -1531,7 +1544,8 @@
             }, 10);
         }
 
-        function closeVoteModal() {
+        function closeVoteModal(force) {
+            if (voteSubmitting && force !== true) return;
             const modal = document.getElementById('vote-modal');
             const content = document.getElementById('modal-content-box');
             content.classList.remove('scale-100', 'opacity-100');
@@ -1574,38 +1588,90 @@
         }
 
         let voteSubmitting = false;
+
+        function setVoteSaving(on) {
+            const ok = document.getElementById('vote-confirm-btn');
+            const cancel = document.getElementById('vote-cancel-btn');
+            const msg = document.getElementById('vote-saving-msg');
+            if (on) {
+                ok.disabled = true; cancel.disabled = true;
+                ok.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>กำลังบันทึก...';
+                msg.classList.remove('hidden');
+                document.getElementById('vote-saving-text').innerText = 'กำลังบันทึกคะแนนไปยังฐานข้อมูลกลาง (ประมาณ 2–5 วินาที) กรุณาอย่าปิดหรือรีเฟรชหน้านี้';
+            } else {
+                ok.disabled = false; cancel.disabled = false;
+                ok.innerHTML = 'ยืนยันการลงคะแนน';
+                msg.classList.add('hidden');
+            }
+        }
+
+        // ถามเซิร์ฟเวอร์ว่าเลขสมาชิกนี้ถูกบันทึกว่าลงคะแนนแล้วหรือยัง (ใช้เมื่อเน็ตหลุด/หมดเวลารอ)
+        async function checkVotedOnServer(memberId) {
+            try {
+                const sep = CLOUD_URL.includes('?') ? '&' : '?';
+                const res = await (await fetch(CLOUD_URL.trim() + sep + 't=' + Date.now())).json();
+                if (!res.ok || !res.data) return null;
+                const v = (res.data.coop_eligible_voters || []).find(x => String(x.memberId).trim().toLowerCase() === String(memberId).trim().toLowerCase());
+                return { voted: !!(v && v.hasVoted), data: res.data };
+            } catch (e) { return null; }
+        }
+
+        function finishVoteSuccess(data) {
+            if (data) applyCloudState(data);
+            setCloudStatus('ok');
+            voteSubmitting = false;
+            setVoteSaving(false);
+            closeVoteModal(true);
+            showNotification("ลงคะแนนสำเร็จ!", "บันทึกคะแนนเสียงของท่านเรียบร้อยแล้ว ขอบคุณที่มาใช้สิทธิ์", "success");
+            logoutVoter();
+            loadPublicResults();
+        }
+
         async function submitVoteCloud() {
             if (voteSubmitting) return;
             voteSubmitting = true;
+            setVoteSaving(true);
             setCloudStatus('saving');
+            const memberId = currentVoter.memberId;
+            const slowTimer = setTimeout(() => {
+                const t = document.getElementById('vote-saving-text');
+                if (t) t.innerText = 'สัญญาณอินเทอร์เน็ตช้า ระบบยังกำลังบันทึกอยู่ กรุณารอสักครู่...';
+            }, 6000);
+            let res = null;
             try {
-                const res = await cloudPost({ action: 'vote', memberId: currentVoter.memberId, choice: selectedVoteCandidate });
-                if (res.ok) {
-                    applyCloudState(res.data);
-                    setCloudStatus('ok');
-                    closeVoteModal();
-                    showNotification("ลงคะแนนสำเร็จ!", "บันทึกคะแนนเสียงของท่านเรียบร้อยแล้ว ขอบคุณที่มาใช้สิทธิ์", "success");
-                    logoutVoter();
-                    loadPublicResults();
-                    return;
-                }
-                const msgs = {
-                    already: ["ท่านได้ลงคะแนนแล้ว", "เลขสมาชิกนี้ใช้สิทธิ์ไปแล้ว ระบบไม่อนุญาตให้ลงคะแนนซ้ำ"],
-                    closed: ["ระบบปิดรับคะแนนแล้ว", "ผู้ดูแลระบบปิดรับการลงคะแนนแล้ว"],
-                    notfound: ["ไม่พบเลขสมาชิก", "ไม่พบเลขสมาชิกนี้ในบัญชีผู้มีสิทธิ์ (อาจถูกลบโดยผู้ดูแลระบบ)"],
-                    busy: ["ระบบกำลังยุ่ง", "มีผู้ลงคะแนนพร้อมกันจำนวนมาก กรุณากดยืนยันอีกครั้ง"]
-                };
-                const [t, m] = msgs[res.error] || ["บันทึกคะแนนไม่สำเร็จ", String(res.error)];
-                showNotification(t, m, "error");
-                setCloudStatus('ok');
-                if (res.error !== 'busy') { closeVoteModal(); logoutVoter(); cloudPull(); }
+                res = await cloudPost({ action: 'vote', memberId, choice: selectedVoteCandidate }, 30000);
             } catch (err) {
                 console.error(err);
-                setCloudStatus('error');
-                showNotification("เชื่อมต่อไม่ได้", "ยังไม่ได้บันทึกคะแนน กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดยืนยันอีกครั้ง", "error");
+                res = null;
             } finally {
-                voteSubmitting = false;
+                clearTimeout(slowTimer);
             }
+
+            if (res && res.ok) return finishVoteSuccess(res.data);
+
+            // ไม่ได้คำตอบ (เน็ตหลุด/หมดเวลา): ตรวจกับเซิร์ฟเวอร์ว่าคะแนนเข้าไปแล้วหรือยัง
+            if (!res) {
+                const chk = await checkVotedOnServer(memberId);
+                if (chk && chk.voted) return finishVoteSuccess(chk.data);
+                voteSubmitting = false;
+                setVoteSaving(false);
+                setCloudStatus('error');
+                showNotification("ยังไม่ได้บันทึกคะแนน", "การเชื่อมต่อขัดข้อง คะแนนของท่านยังไม่ถูกบันทึก กรุณากด \"ยืนยันการลงคะแนน\" อีกครั้ง", "error");
+                return;
+            }
+
+            voteSubmitting = false;
+            setVoteSaving(false);
+            setCloudStatus('ok');
+            const msgs = {
+                already: ["ท่านได้ลงคะแนนแล้ว", "เลขสมาชิกนี้ใช้สิทธิ์ไปแล้ว ระบบไม่อนุญาตให้ลงคะแนนซ้ำ"],
+                closed: ["ระบบปิดรับคะแนนแล้ว", "ผู้ดูแลระบบปิดรับการลงคะแนนแล้ว"],
+                notfound: ["ไม่พบเลขสมาชิก", "ไม่พบเลขสมาชิกนี้ในบัญชีผู้มีสิทธิ์ (อาจถูกลบโดยผู้ดูแลระบบ)"],
+                busy: ["ระบบกำลังยุ่ง", "มีผู้ลงคะแนนพร้อมกันจำนวนมาก กรุณากดยืนยันอีกครั้ง"]
+            };
+            const [t, m] = msgs[res.error] || ["บันทึกคะแนนไม่สำเร็จ", String(res.error)];
+            showNotification(t, m, "error");
+            if (res.error !== 'busy') { closeVoteModal(true); logoutVoter(); cloudPull(); }
         }
 
         // Public Results Dashboard
