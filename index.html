@@ -85,11 +85,7 @@
                     <p id="status-desc" class="text-sm opacity-90">กรุณารอสักครู่</p>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2.5">
-                <div id="server-status-pill" class="text-xs px-3 py-1.5 rounded-lg border font-medium flex items-center space-x-1.5 bg-slate-100 text-slate-600 border-slate-200">
-                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                    <span>กำลังตรวจการเชื่อมต่อ...</span>
-                </div>
+            <div class="flex items-center space-x-3">
                 <div id="timer-display" class="font-mono text-sm bg-white px-3.5 py-1.5 rounded-lg shadow-inner border border-slate-200 text-slate-800 font-bold">
                     เวลาที่เหลือ: --:--:--
                 </div>
@@ -861,94 +857,7 @@
         const ADMIN_PASS_KEY = 'wcp2569_admin_password';
         const DEFAULT_ADMIN_PASS = 'admin';
 
-        // Safe Storage Helper with Auto-Sync Hook
-        let isServerMode = false;
-        let lastServerHash = '';
-        let isSyncing = false;
-        let syncDebounceTimer = null;
-
-        function triggerSyncToServer() {
-            if (!isServerMode || isSyncing) return;
-            if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-            syncDebounceTimer = setTimeout(syncToServer, 100);
-        }
-
-        async function checkServerConnection() {
-            const pill = document.getElementById('server-status-pill');
-            try {
-                const resp = await fetch('/api/data', { cache: 'no-cache' });
-                if (resp.ok) {
-                    isServerMode = true;
-                    if (pill) {
-                        pill.className = "text-xs px-3 py-1.5 rounded-lg border font-medium flex items-center space-x-1.5 bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm";
-                        pill.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>🟢 ซิงค์เซิร์ฟเวอร์กลาง (ข้อมูลตรงกันทุกเครื่อง)</span>';
-                    }
-                    const serverData = await resp.json();
-                    applyServerData(serverData);
-                    return true;
-                }
-            } catch (e) {
-                isServerMode = false;
-                if (pill) {
-                    pill.className = "text-xs px-3 py-1.5 rounded-lg border font-medium flex items-center space-x-1.5 bg-amber-50 text-amber-800 border-amber-200 cursor-pointer";
-                    pill.title = "เปิดในโหมดออฟไลน์ หากต้องการให้หลายเครื่องซิงค์ข้อมูลเดียวกัน ให้ดับเบิ้ลคลิก 'เริ่มระบบเลือกตั้ง_start-server.bat'";
-                    pill.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500"></span><span>📁 โหมดเครื่องเดียว (ออฟไลน์)</span>';
-                }
-            }
-            return false;
-        }
-
-        function applyServerData(data) {
-            if (!data || typeof data !== 'object') return;
-            // หากเซิร์ฟเวอร์ยังไม่มีข้อมูล (เพิ่งเปิดครั้งแรก) ให้นำข้อมูลเริ่มต้นในเครื่องนี้อัปโหลดขึ้นเซิร์ฟเวอร์
-            if (!data.eligibleVoters && !data.candidates) {
-                syncToServer();
-                return;
-            }
-
-            const newHash = JSON.stringify(data);
-            if (newHash === lastServerHash) return; // ไม่มีการเปลี่ยนแปลง
-
-            isSyncing = true;
-            if (Array.isArray(data.candidates)) LS.setItem('coop_candidates', JSON.stringify(data.candidates));
-            if (Array.isArray(data.eligibleVoters)) LS.setItem('coop_eligible_voters', JSON.stringify(data.eligibleVoters));
-            if (Array.isArray(data.votes)) LS.setItem('coop_votes', JSON.stringify(data.votes));
-            if (data.timing) LS.setItem('coop_timing', JSON.stringify(data.timing));
-            if (data.adminPassword) LS.setItem(ADMIN_PASS_KEY, data.adminPassword);
-
-            lastServerHash = newHash;
-
-            // อัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่จากเครื่องอื่น
-            if (typeof loadPublicResults === 'function') loadPublicResults();
-            if (typeof loadCandidatesForVoter === 'function') loadCandidatesForVoter();
-            if (typeof loadAdminVoterRegistry === 'function') loadAdminVoterRegistry();
-            if (typeof loadAdminCandidates === 'function') loadAdminCandidates();
-            if (typeof renderQuickVoterButtons === 'function') renderQuickVoterButtons();
-            isSyncing = false;
-        }
-
-        async function syncToServer() {
-            if (!isServerMode || isSyncing) return;
-            try {
-                const payload = {
-                    updatedAt: new Date().toISOString(),
-                    candidates: readJSON('coop_candidates'),
-                    eligibleVoters: readJSON('coop_eligible_voters'),
-                    votes: readJSON('coop_votes'),
-                    timing: readJSON('coop_timing'),
-                    adminPassword: getAdminPassword()
-                };
-                lastServerHash = JSON.stringify(payload);
-                await fetch('/api/data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } catch (e) {
-                console.error("Sync error:", e);
-            }
-        }
-
+        // Safe Storage Helper
         function makeSafeStorage(getNative) {
             let native = null;
             try {
@@ -960,18 +869,157 @@
             return {
                 persistent: !!native,
                 getItem(k) { try { return native ? native.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { return k in mem ? mem[k] : null; } },
-                setItem(k, v) { 
-                    mem[k] = String(v); 
-                    try { if (native) native.setItem(k, String(v)); } catch (e) {} 
-                    if (k.startsWith('coop_') || k === ADMIN_PASS_KEY) {
-                        triggerSyncToServer();
-                    }
-                },
+                setItem(k, v) { mem[k] = String(v); try { if (native) native.setItem(k, String(v)); } catch (e) {} },
                 removeItem(k) { delete mem[k]; try { if (native) native.removeItem(k); } catch (e) {} }
             };
         }
         const LS = makeSafeStorage(() => window.localStorage);
         const SS = makeSafeStorage(() => window.sessionStorage);
+
+        // =====================================================================
+        // ฐานข้อมูลกลาง (Google Sheets) — ให้ทุกเครื่อง/ทุกเบราว์เซอร์เห็นข้อมูลเดียวกัน
+        // วาง URL ของ Web App ที่ได้จาก Google Apps Script ไว้ในเครื่องหมายคำพูดด้านล่าง
+        // ถ้าเว้นว่างไว้ ระบบจะเก็บข้อมูลไว้ในเครื่องนี้เท่านั้นเหมือนเดิม
+        // =====================================================================
+        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbw52cXkHVCl32CjTJsRfOOEFFkascmkoABtR0J0C6sif3VRKLCYUb37yhn-7Qo658iD/exec";
+
+        const CLOUD_ON = /^https:\/\/script\.google(usercontent)?\.com\//.test(CLOUD_URL.trim());
+        const CLOUD_KEYS = ['coop_candidates', 'coop_eligible_voters', 'coop_votes', 'coop_timing'];
+        let cloudAdminPass = null;     // รหัสผ่านแอดมินของรอบนี้ (ใช้ยืนยันตอนบันทึก)
+        let cloudReady = false;        // โหลดข้อมูลจากฐานข้อมูลกลางครั้งแรกเสร็จหรือยัง
+        let cloudApplying = false;     // กำลังเขียนข้อมูลจากเซิร์ฟเวอร์ลงเครื่อง (ไม่ต้องส่งกลับ)
+        let cloudPending = {};
+        let cloudForceVoters = false;
+        let cloudTimer = null;
+        let cloudInFlight = 0;
+        let cloudMissingKeys = [];
+        let cloudAfterQueue = [];
+
+        const _lsSetRaw = LS.setItem.bind(LS);
+        LS.setItem = function (k, v) {
+            _lsSetRaw(k, v);
+            if (CLOUD_ON && !cloudApplying && cloudAdminPass && CLOUD_KEYS.includes(k)) {
+                try { cloudPending[k] = JSON.parse(v); } catch (e) { return; }
+                clearTimeout(cloudTimer);
+                cloudTimer = setTimeout(cloudFlush, 300);
+            }
+        };
+
+        async function cloudPost(body) {
+            const resp = await fetch(CLOUD_URL.trim(), { method: 'POST', body: JSON.stringify(body) });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return await resp.json();
+        }
+
+        async function cloudFlush() {
+            const keys = Object.keys(cloudPending);
+            if (!keys.length || !cloudAdminPass) return cloudRunAfter();
+            const values = cloudPending; cloudPending = {};
+            const forceVoters = cloudForceVoters; cloudForceVoters = false;
+            cloudInFlight++;
+            setCloudStatus('saving');
+            try {
+                const res = await cloudPost({ action: 'set', password: cloudAdminPass, values, forceVoters });
+                if (!res.ok) throw new Error(res.error === 'badpass' ? 'รหัสผ่านไม่ถูกต้อง (อาจถูกเปลี่ยนจากเครื่องอื่น)' : res.error);
+                applyCloudState(res.data);
+                setCloudStatus('ok');
+            } catch (err) {
+                console.error(err);
+                setCloudStatus('error');
+                showNotification("บันทึกขึ้นฐานข้อมูลกลางไม่สำเร็จ", "ข้อมูลที่แก้ล่าสุดยังไม่ถูกบันทึก: " + err.message + " กรุณาลองใหม่", "error");
+            } finally {
+                cloudInFlight--;
+                cloudRunAfter();
+            }
+        }
+
+        // รอให้บันทึกขึ้นเซิร์ฟเวอร์เสร็จก่อน แล้วค่อยทำงานต่อ (เช่น รีเฟรชหน้า)
+        function cloudAfterSave(fn) {
+            if (!CLOUD_ON) return setTimeout(fn, 800);
+            cloudAfterQueue.push(fn);
+            if (Object.keys(cloudPending).length) { clearTimeout(cloudTimer); cloudFlush(); }
+            else cloudRunAfter();
+        }
+        function cloudRunAfter() {
+            if (cloudInFlight > 0 || Object.keys(cloudPending).length) return;
+            const q = cloudAfterQueue; cloudAfterQueue = [];
+            q.forEach(fn => setTimeout(fn, 300));
+        }
+
+        let lastCloudSnapshot = '';
+        function applyCloudState(data) {
+            if (!data) return;
+            cloudMissingKeys = CLOUD_KEYS.filter(k => data[k] === null || data[k] === undefined);
+            const snap = JSON.stringify(CLOUD_KEYS.map(k => data[k]));
+            const firstLoad = !cloudReady;
+            cloudReady = true;
+            if (snap === lastCloudSnapshot && !firstLoad) return;
+            lastCloudSnapshot = snap;
+            cloudApplying = true;
+            try {
+                CLOUD_KEYS.forEach(k => {
+                    if (data[k] !== null && data[k] !== undefined) LS.setItem(k, JSON.stringify(data[k]));
+                });
+            } finally { cloudApplying = false; }
+            refreshAllViews(firstLoad);
+        }
+
+        function refreshAllViews(firstLoad) {
+            const safe = fn => { try { fn(); } catch (e) { console.error(e); } };
+            safe(renderQuickVoterButtons);
+            safe(checkSystemStatus);
+            if (!currentVoter) safe(loadCandidatesForVoter);
+            safe(loadPublicResults);
+            if (isAdminLoggedIn) {
+                safe(loadAdminCandidates);
+                const q = document.getElementById('voter-search-input');
+                safe((q && q.value) ? filterVoterRegistryTable : loadAdminVoterRegistry);
+                if (firstLoad) safe(loadAdminTiming);
+            }
+        }
+
+        async function cloudPull() {
+            if (!CLOUD_ON) return;
+            try {
+                const sep = CLOUD_URL.includes('?') ? '&' : '?';
+                const resp = await fetch(CLOUD_URL.trim() + sep + 't=' + Date.now());
+                const res = await resp.json();
+                if (!res.ok) throw new Error(res.error || 'error');
+                if (cloudInFlight === 0 && !Object.keys(cloudPending).length) applyCloudState(res.data);
+                setCloudStatus('ok');
+            } catch (err) {
+                console.error(err);
+                setCloudStatus('error');
+            }
+        }
+
+        // ถ้าฐานข้อมูลกลางยังว่าง (ใช้ครั้งแรก) ให้นำข้อมูลในเครื่องขึ้นไปเป็นข้อมูลตั้งต้น
+        function cloudSeedMissing() {
+            if (!CLOUD_ON || !cloudAdminPass || !cloudMissingKeys.length) return;
+            cloudMissingKeys.forEach(k => { cloudPending[k] = readJSON(k); });
+            cloudMissingKeys = [];
+            cloudFlush();
+        }
+
+        function setCloudStatus(state) {
+            let el = document.getElementById('cloud-status');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'cloud-status';
+                el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;font-size:11px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 2px 6px rgba(0,0,0,.08);color:#334155;font-family:inherit;max-width:calc(100vw - 24px)';
+                document.body.appendChild(el);
+            }
+            const t = new Date().toLocaleTimeString('th-TH');
+            const map = {
+                offline: ['#f59e0b', 'โหมดเครื่องเดียว: ข้อมูลอยู่ในเบราว์เซอร์นี้เท่านั้น'],
+                loading: ['#3b82f6', 'กำลังโหลดข้อมูลจากฐานข้อมูลกลาง...'],
+                saving: ['#3b82f6', 'กำลังบันทึกขึ้นฐานข้อมูลกลาง...'],
+                ok: ['#10b981', 'เชื่อมต่อฐานข้อมูลกลางแล้ว • อัปเดต ' + t],
+                error: ['#e11d48', 'เชื่อมต่อฐานข้อมูลกลางไม่ได้ • ลองใหม่อัตโนมัติ']
+            };
+            const [c, txt] = map[state] || map.offline;
+            el.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + c + ';margin-right:6px"></span>' + txt;
+        }
 
         function readJSON(key) {
             try {
@@ -1041,6 +1089,10 @@
         let currentVoter = null;
         try { currentVoter = JSON.parse(SS.getItem('coop_current_voter')) || null; } catch (e) { currentVoter = null; }
         let isAdminLoggedIn = SS.getItem('coop_admin_authenticated') === 'true';
+        if (CLOUD_ON) {
+            cloudAdminPass = SS.getItem('coop_cloud_admin_pass') || null;
+            if (isAdminLoggedIn && !cloudAdminPass) { isAdminLoggedIn = false; SS.removeItem('coop_admin_authenticated'); }
+        }
         let selectedVoteCandidate = null;
         let resultsChartInstance = null;
 
@@ -1048,10 +1100,6 @@
             renderQuickVoterButtons();
             const isOpen = checkSystemStatus();
             setInterval(checkSystemStatus, 1000);
-
-            // ตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์กลาง และซิงค์ข้อมูลเรียลไทม์
-            checkServerConnection();
-            setInterval(checkServerConnection, 1500);
             
             if (currentVoter) {
                 if (isOpen) {
@@ -1064,6 +1112,15 @@
             
             loadCandidatesForVoter();
             try { loadPublicResults(); } catch (e) { console.error(e); }
+
+            if (CLOUD_ON) {
+                setCloudStatus('loading');
+                cloudPull().then(() => { if (isAdminLoggedIn) cloudSeedMissing(); });
+                setInterval(() => { if (document.visibilityState === 'visible') cloudPull(); }, 10000);
+                document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); });
+            } else {
+                setCloudStatus('offline');
+            }
 
             // Drag and Drop สำหรับกล่องอัปโหลดไฟล์
             const dropzone = document.getElementById('dropzone');
@@ -1263,6 +1320,10 @@
         }
 
         function lookupMember(id, isExplicit = false) {
+            if (CLOUD_ON && !cloudReady) {
+                if (isExplicit) showNotification("กำลังโหลดข้อมูล", "กำลังดึงรายชื่อจากฐานข้อมูลกลาง กรุณารอสักครู่แล้วลองใหม่", "info");
+                return;
+            }
             const resultBox = document.getElementById('voter-result-box');
             const notFoundBox = document.getElementById('voter-not-found-box');
 
@@ -1489,6 +1550,8 @@
                 return;
             }
 
+            if (CLOUD_ON) { submitVoteCloud(); return; }
+
             // 1. Save Anonymous Vote Choice
             const votes = readJSON('coop_votes');
             votes.push(selectedVoteCandidate);
@@ -1508,6 +1571,41 @@
             showNotification("ลงคะแนนสำเร็จ!", "บันทึกคะแนนเสียงของท่านเรียบร้อยแล้ว ขอบคุณที่มาใช้สิทธิ์", "success");
             logoutVoter();
             loadPublicResults();
+        }
+
+        let voteSubmitting = false;
+        async function submitVoteCloud() {
+            if (voteSubmitting) return;
+            voteSubmitting = true;
+            setCloudStatus('saving');
+            try {
+                const res = await cloudPost({ action: 'vote', memberId: currentVoter.memberId, choice: selectedVoteCandidate });
+                if (res.ok) {
+                    applyCloudState(res.data);
+                    setCloudStatus('ok');
+                    closeVoteModal();
+                    showNotification("ลงคะแนนสำเร็จ!", "บันทึกคะแนนเสียงของท่านเรียบร้อยแล้ว ขอบคุณที่มาใช้สิทธิ์", "success");
+                    logoutVoter();
+                    loadPublicResults();
+                    return;
+                }
+                const msgs = {
+                    already: ["ท่านได้ลงคะแนนแล้ว", "เลขสมาชิกนี้ใช้สิทธิ์ไปแล้ว ระบบไม่อนุญาตให้ลงคะแนนซ้ำ"],
+                    closed: ["ระบบปิดรับคะแนนแล้ว", "ผู้ดูแลระบบปิดรับการลงคะแนนแล้ว"],
+                    notfound: ["ไม่พบเลขสมาชิก", "ไม่พบเลขสมาชิกนี้ในบัญชีผู้มีสิทธิ์ (อาจถูกลบโดยผู้ดูแลระบบ)"],
+                    busy: ["ระบบกำลังยุ่ง", "มีผู้ลงคะแนนพร้อมกันจำนวนมาก กรุณากดยืนยันอีกครั้ง"]
+                };
+                const [t, m] = msgs[res.error] || ["บันทึกคะแนนไม่สำเร็จ", String(res.error)];
+                showNotification(t, m, "error");
+                setCloudStatus('ok');
+                if (res.error !== 'busy') { closeVoteModal(); logoutVoter(); cloudPull(); }
+            } catch (err) {
+                console.error(err);
+                setCloudStatus('error');
+                showNotification("เชื่อมต่อไม่ได้", "ยังไม่ได้บันทึกคะแนน กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดยืนยันอีกครั้ง", "error");
+            } finally {
+                voteSubmitting = false;
+            }
         }
 
         // Public Results Dashboard
@@ -1629,11 +1727,30 @@
         }
 
         // ==================== ADMIN FUNCTIONS ====================
-        function handleAdminLogin(e) {
+        async function handleAdminLogin(e) {
             e.preventDefault();
-            const stored = getAdminPassword();
             const passInput = document.getElementById('admin-pass').value.trim();
-            if (passInput === stored) {
+            let passOk;
+            if (CLOUD_ON) {
+                try {
+                    setCloudStatus('loading');
+                    const res = await cloudPost({ action: 'login', password: passInput });
+                    setCloudStatus('ok');
+                    passOk = !!res.ok;
+                    if (passOk) {
+                        cloudAdminPass = passInput;
+                        SS.setItem('coop_cloud_admin_pass', passInput);
+                        applyCloudState(res.data);
+                    }
+                } catch (err) {
+                    setCloudStatus('error');
+                    showNotification("เชื่อมต่อฐานข้อมูลกลางไม่ได้", "กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่", "error");
+                    return;
+                }
+            } else {
+                passOk = passInput === getAdminPassword();
+            }
+            if (passOk) {
                 isAdminLoggedIn = true;
                 SS.setItem('coop_admin_authenticated', 'true');
                 document.getElementById('admin-login-box').classList.add('hidden');
@@ -1643,6 +1760,7 @@
                 loadAdminTiming();
                 loadAdminCandidates();
                 loadAdminVoterRegistry();
+                cloudSeedMissing();
             } else {
                 showNotification("รหัสผ่านไม่ถูกต้อง", "รหัสผ่านเริ่มต้นคือ admin (หรือกดปุ่มลืมรหัสผ่านด้านล่าง)", "error");
             }
@@ -1664,6 +1782,18 @@
         function handleSecureResetPassword(e) {
             e.preventDefault();
             const inputPass = document.getElementById('reset-verify-curr-pass').value.trim();
+            if (CLOUD_ON) {
+                cloudPost({ action: 'resetPassword', password: inputPass }).then(res => {
+                    if (!res.ok) {
+                        showNotification("รหัสผ่านไม่ถูกต้อง!", "รหัสผ่านเดิมไม่ถูกต้อง เพื่อความปลอดภัยจึงไม่อนุญาตให้รีเซ็ตรหัสผ่าน", "error");
+                        return;
+                    }
+                    document.getElementById('admin-pass').value = DEFAULT_ADMIN_PASS;
+                    closeResetPasswordModal();
+                    showNotification("รีเซ็ตรหัสผ่านสำเร็จ", "รหัสผ่านผู้ดูแลระบบถูกรีเซ็ตกลับเป็น: admin เรียบร้อยแล้ว (ทุกเครื่อง)", "success");
+                }).catch(() => showNotification("เชื่อมต่อไม่ได้", "กรุณาลองใหม่อีกครั้ง", "error"));
+                return;
+            }
             const storedPass = getAdminPassword();
 
             // ตรวจสอบรหัสผ่านเดิมที่ตั้งไว้
@@ -1682,6 +1812,8 @@
         function adminLogout() {
             isAdminLoggedIn = false;
             SS.removeItem('coop_admin_authenticated');
+            cloudAdminPass = null;
+            SS.removeItem('coop_cloud_admin_pass');
             document.getElementById('admin-panel').classList.add('hidden');
             document.getElementById('admin-login-box').classList.remove('hidden');
             document.getElementById('admin-pass').value = '';
@@ -1716,6 +1848,22 @@
             const currPass = document.getElementById('curr-admin-pass').value.trim();
             const newPass = document.getElementById('new-admin-pass').value.trim();
             const confirmPass = document.getElementById('confirm-admin-pass').value.trim();
+
+            if (CLOUD_ON) {
+                if (newPass.length < 4) { showNotification("รหัสผ่านสั้นเกินไป", "รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร", "error"); return; }
+                if (newPass !== confirmPass) { showNotification("รหัสผ่านใหม่ไม่ตรงกัน", "กรุณายืนยันรหัสผ่านใหม่ให้ตรงกัน", "error"); return; }
+                cloudPost({ action: 'changePassword', password: currPass, newPassword: newPass }).then(res => {
+                    if (!res.ok) {
+                        showNotification("รหัสผ่านเดิมไม่ถูกต้อง", "กรุณาตรวจสอบรหัสผ่านเดิมอีกครั้ง", "error");
+                        return;
+                    }
+                    cloudAdminPass = newPass;
+                    SS.setItem('coop_cloud_admin_pass', newPass);
+                    closeChangePasswordModal();
+                    showNotification("เปลี่ยนรหัสผ่านสำเร็จ", "ใช้รหัสผ่านใหม่นี้ได้ทุกเครื่อง", "success");
+                }).catch(() => showNotification("เชื่อมต่อไม่ได้", "กรุณาลองใหม่อีกครั้ง", "error"));
+                return;
+            }
 
             const storedPass = getAdminPassword();
 
@@ -1837,6 +1985,7 @@
         function resetAllVotersToNotVoted() {
             let registry = readJSON('coop_eligible_voters');
             registry = registry.map(v => ({ ...v, hasVoted: false, votedAt: null }));
+            cloudForceVoters = true;
             LS.setItem('coop_eligible_voters', JSON.stringify(registry));
             loadAdminVoterRegistry();
             renderQuickVoterButtons();
@@ -2206,7 +2355,7 @@
                 SS.removeItem('coop_current_voter');
                 currentVoter = null;
                 showNotification("รีเซ็ตระบบแล้ว", "ล้างข้อมูลคะแนนและเปิดระบบพร้อมใช้งานแล้ว", "success");
-                setTimeout(() => window.location.reload(), 800);
+                cloudAfterSave(() => window.location.reload());
             }
         }
 
@@ -2301,7 +2450,7 @@
                         if (data.adminPassword) LS.setItem(ADMIN_PASS_KEY, data.adminPassword);
 
                         showNotification("กู้คืนข้อมูลสำเร็จ", "นำเข้าข้อมูลจากไฟล์สำรองเรียบร้อย กำลังรีเฟรชหน้าเว็บ...", "success");
-                        setTimeout(() => { window.location.reload(); }, 1200);
+                        cloudAfterSave(() => window.location.reload());
                     }
                 } catch (err) {
                     console.error(err);
